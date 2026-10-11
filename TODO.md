@@ -6,6 +6,8 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 
 ## Dated checks
 
+- [ ] 2026-12-01 - retry TypeScript 7. Held on 2026-10-11 because `typescript-eslint` refuses TS 7.0 (support tracked for >= 7.1 at https://github.com/typescript-eslint/typescript-eslint/issues/10940) and `ts-node` 10 does not run on it. When `eslint-config-next` pulls a typescript-eslint that supports it: `npm i -D typescript@7` in root and `web/`, swap `ts-node` for `tsx` in `cdk.json` and the `npm run` scripts, set `"module": "nodenext"` and `"types": ["node"]` in `tsconfig.json` (node10 resolution is removed in TS 7), then run tsc, lint, `build:web` and `cdk synth`. All four were verified to pass with that recipe on 2026-10-11 except lint.
+- [ ] Keep `@types/node` on 22.x on purpose - the Lambda runtime, `.nvmrc` and CI all run Node 22, and the types should match the runtime. Bump it together with the runtime, not with `npm outdated`.
 - [ ] 2026-10-13 - confirm Dependabot alert #1 (Next.js < 16.3.6, critical) has auto-closed. The pushed lockfile pins `next@16.4.0`, so it is the pre-push scan (last updated 2026-10-08); if it is still open, dismiss it as fixed: `gh api -X PATCH repos/PatrickWiloak/bedrock-rag-s3-vectors-tutorial/dependabot/alerts/1 -f state=dismissed -f dismissed_reason=fix_started`.
 - [ ] 2026-11-11 - re-check the default model. `us.anthropic.claude-haiku-5-5` was ACTIVE on 2026-10-11. Run `aws bedrock list-inference-profiles --region us-east-1`; if a newer Haiku exists, update `DEFAULT_MODEL_ID` in `lib/s3-rag-stack.ts`, `model_id` in `terraform/variables.tf` + `terraform.tfvars.example`, and the model tables in README / QUICKSTART / docs/04.
 - [ ] 2026-12-01 - check whether `@aws-cdk/aws-bedrock-alpha` has shipped a knowledge base L2 (`npm view @aws-cdk/aws-bedrock-alpha` + its README). It had only Agents and Guardrails on 2026-10-11, which is why `lib/` stays on L1s. If it has, judge a port; `@cdklabs/generative-ai-cdk-constructs` is deprecated and is not the answer.
@@ -33,7 +35,8 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 - [x] ~~Rename the repository~~ ✅ 2026-10-11 - `bedrock-rag-s3-vectors-tutorial`; GitHub redirects the old name.
 - [x] ~~Confirm whether S3 Vectors supports HYBRID search~~ ✅ 2026-10-11 - it does not (AWS docs: semantic only); docs/04 and docs/06 now say so.
 - [x] ~~Regenerate or drop the duplicated `.docx` samples~~ ✅ 2026-10-11 - all five `.docx` named a different fictional company and were rebranded; the duplicate `employee-handbook.docx` was removed (16 documents).
-- [x] ~~Add a `.github/workflows` CI job~~ ✅ 2026-10-11 - tsc, next build, cdk synth, terraform fmt + validate.
+- [x] ~~Add a `.github/workflows` CI job~~ ✅ 2026-10-11 - tsc, lint, next build, cdk synth, terraform fmt + validate.
+- [x] ~~Major upgrades~~ ✅ 2026-10-11 - Tailwind 4 (official upgrade tool plus the typography plugin, two Preflight pins and the class renames it skipped) and ESLint 10 with a flat config (the web app had no ESLint config before, so `npm run lint` had never worked). TypeScript 7 held - see the dated check above.
 - [x] ~~Add a v1 tag~~ ✅ 2026-10-11 - `v1` (agent-era) and `v2.1` tags pushed; `v2.2` on this release.
 - [x] ~~Record the Agents Classic problem in `~/coding/strategic-bedrock-demo`~~ ✅ 2026-10-11 - in that repo's TODO.md.
 

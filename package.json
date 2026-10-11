@@ -35,7 +35,7 @@
     "@types/node": "^22.10.0",
     "aws-cdk": "^2.1139.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "~5.9.3"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-agent": "^3.1121.0",

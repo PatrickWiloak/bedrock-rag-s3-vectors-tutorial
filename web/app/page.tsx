@@ -21,7 +21,7 @@ async function sha256Hex(text: string): Promise<string> {
 }
 
 const AssistantAvatar = () => (
-  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200">
+  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200">
     <svg className="h-5 w-5 text-black" fill="currentColor" viewBox="0 0 20 20">
       <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
       <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
@@ -30,7 +30,7 @@ const AssistantAvatar = () => (
 );
 
 const UserAvatar = () => (
-  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black">
+  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black">
     <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
       <path
         fillRule="evenodd"
@@ -334,7 +334,7 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me anything…"
               disabled={isLoading}
-              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 text-black placeholder-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 text-black placeholder-gray-500 focus:border-transparent focus:outline-hidden focus:ring-2 focus:ring-black disabled:opacity-50"
             />
             <button
               type="submit"

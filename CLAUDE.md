@@ -79,6 +79,7 @@ npm install                     # root + web workspace
 IAC=terraform ./scripts/deploy.sh <any of the above>   # same, via terraform/
 
 npm run build:web               # Next.js static export → web/out (before any cdk deploy)
+npm run lint --workspace=web    # ESLint 10 flat config in web/eslint.config.mjs; CI runs it
 npm run check-status            # ingestion job progress
 npm run test-rag                # query from the CLI (add `interactive`)
 ./test-bedrock.sh               # bottom-up diagnostic incl. a streaming check - run this first when broken
@@ -116,6 +117,7 @@ Documentation *is* the deliverable here - a wrong doc is a worse bug than a wron
 ## Conventions
 
 - TypeScript throughout; CDK L1 constructs where no L2 exists (all of `aws-s3vectors`). The official Bedrock L2s are in flux (`@cdklabs/generative-ai-cdk-constructs` is deprecated in favour of `@aws-cdk/aws-bedrock-alpha`, which has no knowledge base yet) - stay on L1s until the alpha ships one.
+- Web UI: Tailwind CSS 4 (theme and plugins in `web/app/globals.css`, no `tailwind.config.ts`); ESLint 10 flat config. TypeScript stays on 5.9 until typescript-eslint supports 7.x (TODO.md has the recipe).
 - Terraform: first-party `hashicorp/aws` resources only, no registry modules (the `aws-ia/bedrock` module needs a pre-existing index and the `awscc` provider). `terraform fmt` clean, `validate` clean, no credentials needed for either.
 - Comments explain *why*. Constraints that cost debugging time get a full explanation.
 - No em dashes in prose - regular dashes.

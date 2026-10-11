@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   cdk:
-    name: TypeScript, web build, cdk synth
+    name: TypeScript, lint, web build, cdk synth
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -23,6 +23,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: npm run lint --workspace=web
       - run: npm run build:web
       # Docker is available on ubuntu-latest, which the Lambda asset bundling needs.
       - run: npx cdk synth --quiet

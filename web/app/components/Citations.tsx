@@ -19,13 +19,13 @@ export default function Citations({ citations }: { citations: Citation[] }) {
       {citations.map((c) => (
         <details
           key={c.uri}
-          className="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs"
+          className="rounded-sm border border-gray-300 bg-gray-50 px-3 py-2 text-xs"
         >
           <summary className="cursor-pointer list-none">
             <span className="mr-1 text-gray-500">{c.index}.</span>
             <span className="font-medium text-gray-800">{c.title}</span>
             {c.category && (
-              <span className="ml-2 rounded bg-gray-200 px-1.5 py-0.5 text-[10px] text-gray-600">
+              <span className="ml-2 rounded-sm bg-gray-200 px-1.5 py-0.5 text-[10px] text-gray-600">
                 {c.category}
               </span>
             )}
