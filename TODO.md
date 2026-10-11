@@ -6,6 +6,7 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 
 ## Dated checks
 
+- [ ] 2026-10-13 - confirm Dependabot alert #1 (Next.js < 16.3.6, critical) has auto-closed. The pushed lockfile pins `next@16.4.0`, so it is the pre-push scan (last updated 2026-10-08); if it is still open, dismiss it as fixed: `gh api -X PATCH repos/PatrickWiloak/bedrock-rag-s3-vectors-tutorial/dependabot/alerts/1 -f state=dismissed -f dismissed_reason=fix_started`.
 - [ ] 2026-11-11 - re-check the default model. `us.anthropic.claude-haiku-5-5` was ACTIVE on 2026-10-11. Run `aws bedrock list-inference-profiles --region us-east-1`; if a newer Haiku exists, update `DEFAULT_MODEL_ID` in `lib/s3-rag-stack.ts`, `model_id` in `terraform/variables.tf` + `terraform.tfvars.example`, and the model tables in README / QUICKSTART / docs/04.
 - [ ] 2026-12-01 - check whether `@aws-cdk/aws-bedrock-alpha` has shipped a knowledge base L2 (`npm view @aws-cdk/aws-bedrock-alpha` + its README). It had only Agents and Guardrails on 2026-10-11, which is why `lib/` stays on L1s. If it has, judge a port; `@cdklabs/generative-ai-cdk-constructs` is deprecated and is not the answer.
 - [ ] 2026-12-01 - re-run `IAC=terraform ./scripts/deploy.sh full` and `./test-bedrock.sh` once (then destroy) to catch provider or service drift; last green 2026-10-11.
