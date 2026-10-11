@@ -97,6 +97,27 @@ aws cloudfront create-invalidation --distribution-id "$(terraform output -raw di
 - The S3 Vectors index declares `AMAZON_BEDROCK_TEXT` and `AMAZON_BEDROCK_METADATA` as non-filterable (`knowledge_base.tf`). Without that, ingestion fails with `metadata must have at most 2048 bytes`, and the setting is create-only.
 - The Lambda role also has `bedrock:GetInferenceProfile` on the profile ARN (`lambda.tf`), and the Lambda is handed **both** prompt templates from `config/`. The Claude 5.5 models refuse `RetrieveAndGenerate` without either.
 
+## State: read this before deploying from more than one machine
+
+Terraform remembers what it created in a **state file**, and this configuration keeps it **locally**, at `terraform/terraform.tfstate`, gitignored. That is the right default for a tutorial you deploy, poke at, and destroy from one laptop. It has two consequences worth knowing before they bite:
+
+- **A second machine (or a fresh clone) does not know the stack exists.** `terraform apply` there creates a complete second copy - new buckets, index, knowledge base, CloudFront distribution - rather than updating the first. Both cost money, and the first one is now invisible to Terraform on that machine.
+- **Lose the state file (new laptop, deleted clone) and `terraform destroy` has nothing to destroy.** The resources keep running and keep billing until you remove them by hand.
+
+If either applies to you, switch to the S3 backend before the first `apply`. Uncomment the `backend "s3"` block in [`versions.tf`](versions.tf), point it at a bucket you own (state is small; any existing private bucket in the account works), and run `terraform init`. With `use_lockfile = true` it also prevents two people applying at once. CDK has none of this because CloudFormation holds the state for you, which is the one structural advantage the CDK path has here.
+
+**If the state is already gone**, everything this stack creates is findable by name, because every name carries the deployment suffix (`kb-<account>-<suffix>`, `docs-<account>-<region>-<suffix>`, `rag-chat-<suffix>`):
+
+```bash
+aws bedrock-agent list-knowledge-bases --region us-east-1 --query 'knowledgeBaseSummaries[].[knowledgeBaseId,name]' --output table
+aws s3vectors list-vector-buckets --region us-east-1
+aws s3api list-buckets --query "Buckets[?starts_with(Name,'docs-') || starts_with(Name,'web-')].Name"
+aws lambda list-functions --region us-east-1 --query "Functions[?starts_with(FunctionName,'rag-chat')].FunctionName"
+aws cloudfront list-distributions --query "DistributionList.Items[?starts_with(Comment,'Bedrock RAG tutorial')].[Id,Comment]" --output table
+```
+
+Delete the knowledge base (data source first), the vector index then bucket, the two S3 buckets (empty them first), the Lambda and its IAM roles, and finally the CloudFront distribution (disable, wait, delete) and its two origin access controls. Or, faster: `terraform import` each resource into a fresh state and run `terraform destroy` - the `import` block syntax is in each resource's provider documentation.
+
 ## Destroy
 
 ```bash

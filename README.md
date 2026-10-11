@@ -308,7 +308,7 @@ IAC=terraform ./test-bedrock.sh             # verify, including streaming
 IAC=terraform ./scripts/deploy.sh destroy   # tear down
 ```
 
-The two paths read the same [`config/prompt-template.txt`](config/prompt-template.txt) and [`config/cloudfront-url-rewrite.js`](config/cloudfront-url-rewrite.js), so they cannot drift apart on behaviour. What *is* different (Lambda packaging without Docker, per-file site upload, a random name suffix instead of a timestamp) is explained in [terraform/README.md](terraform/README.md). The chapters in `docs/` walk the CDK code; every resource they describe has a same-named counterpart in `terraform/`.
+The two paths read the same [`config/prompt-template.txt`](config/prompt-template.txt) and [`config/cloudfront-url-rewrite.js`](config/cloudfront-url-rewrite.js), so they cannot drift apart on behaviour. One difference matters before you start: **Terraform's state is a local file**, so deploying from a second machine creates a second copy of everything, and losing the file leaves the stack running with nothing to destroy it. Read [State](terraform/README.md#state-read-this-before-deploying-from-more-than-one-machine) first if that could be you; the S3 backend is a six-line change. What *is* different (Lambda packaging without Docker, per-file site upload, a random name suffix instead of a timestamp) is explained in [terraform/README.md](terraform/README.md). The chapters in `docs/` walk the CDK code; every resource they describe has a same-named counterpart in `terraform/`.
 
 ## Sample Data: Nobler Works
 
