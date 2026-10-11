@@ -1,10 +1,10 @@
 {
   "name": "bedrock-rag-lambda",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Streaming chat Lambda for the RAG tutorial",
   "type": "module",
   "main": "chat.mjs",
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.1121.0"
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.1149.0"
   }
 }

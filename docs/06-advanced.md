@@ -139,7 +139,9 @@ vectorSearchConfiguration: {
 }
 ```
 
-Support depends on the vector store, and not every store implements it. Check current S3 Vectors capability before depending on it; if it isn't available and exact-match retrieval matters to you, that is a legitimate reason to choose OpenSearch Serverless despite the cost.
+**Not with S3 Vectors.** AWS lists this as the first limitation of the S3 Vectors integration: it supports semantic search only, no hybrid ([S3 Vectors with Amazon Bedrock Knowledge Bases - Limitations](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-bedrock-kb.html#s3-vectors-bedrock-kb-limitations)). The snippet above works on an OpenSearch Serverless knowledge base, not on the one this tutorial builds.
+
+So if exact-match retrieval matters to your corpus, that is a legitimate reason to choose OpenSearch Serverless despite the cost. The knowledge base abstracts the store: the change is `storageConfiguration` plus a re-ingest, and the query code stays the same. S3 Vectors also offers a one-click export of an index to OpenSearch for exactly this kind of upgrade.
 
 ## Streaming: how it actually works here
 

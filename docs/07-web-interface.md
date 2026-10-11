@@ -140,6 +140,19 @@ NDJSON - one JSON object per line. No library needed on either end, and partial 
 | `done` | – | Exactly once, on success |
 | `error` | `{message}` | Instead of `done`, on failure |
 
+## One header before the request leaves the browser
+
+CloudFront reaches the Lambda Function URL through Origin Access Control, which means it signs the origin request with SigV4. Lambda refuses unsigned payloads, and CloudFront does not hash request bodies for you. So every POST carries the SHA-256 of its JSON body:
+
+```ts
+headers: {
+  'Content-Type': 'application/json',
+  'x-amz-content-sha256': await sha256Hex(body),   // Web Crypto, ~3 lines
+},
+```
+
+Forget it and the origin answers `The request signature we calculated does not match the signature you provided`, which reads like an OAC misconfiguration and is not. GETs are unaffected, which is why the static site works without it.
+
 ## Parsing it in the browser
 
 ```ts

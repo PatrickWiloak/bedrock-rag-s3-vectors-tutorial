@@ -24,7 +24,7 @@ export interface WebHostingConstructProps {
    *
    * Every current Claude model on Bedrock is served through a cross-Region
    * inference profile, so this is a profile ID such as
-   * `us.anthropic.claude-opus-5` rather than a bare foundation model ID.
+   * `us.anthropic.claude-haiku-5-5` rather than a bare foundation model ID.
    */
   modelId: string;
 
@@ -43,6 +43,14 @@ export interface WebHostingConstructProps {
   promptTemplate?: string;
 
   /**
+   * Orchestration prompt template - how the conversation becomes a search
+   * query. Must contain `$conversation_history$` and
+   * `$output_format_instructions$`. Required (with `$query$` in both
+   * templates) by the Claude 5.5 models; optional for older ones.
+   */
+  orchestrationPromptTemplate?: string;
+
+  /**
    * Path to the built Next.js static export
    * @default '../web/out'
    */
@@ -52,7 +60,7 @@ export interface WebHostingConstructProps {
 /**
  * Strips the cross-Region routing prefix off an inference profile ID.
  *
- * `us.anthropic.claude-opus-5` -> `anthropic.claude-opus-5`
+ * `us.anthropic.claude-haiku-5-5` -> `anthropic.claude-haiku-5-5`
  *
  * An inference profile routes to the same foundation model in several Regions,
  * and `bedrock:InvokeModel` is authorized against the underlying foundation
@@ -72,29 +80,11 @@ function baseModelIdOf(modelId: string): string {
  * CloudFront custom error response mapping 404 to /index.html - papers over
  * genuinely missing objects by returning the homepage with a 200, which hides
  * broken links and confuses crawlers.
+ *
+ * The code lives in config/cloudfront-url-rewrite.js, shared with the
+ * Terraform configuration, so both deploy paths rewrite URLs identically.
  */
-const URL_REWRITE_FUNCTION = `
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-
-  // Never rewrite the API path - that origin is the streaming Lambda.
-  if (uri.indexOf('/api/') === 0) return request;
-
-  // "/foo/" -> "/foo/index.html"
-  if (uri.endsWith('/')) {
-    request.uri = uri + 'index.html';
-    return request;
-  }
-
-  // No file extension means an HTML route: "/foo" -> "/foo/index.html"
-  if (uri.lastIndexOf('.') < uri.lastIndexOf('/')) {
-    request.uri = uri + '/index.html';
-  }
-
-  return request;
-}
-`;
+const URL_REWRITE_FUNCTION_PATH = path.join(__dirname, '../config/cloudfront-url-rewrite.js');
 
 export class WebHostingConstruct extends Construct {
   public readonly distributionDomainName: string;
@@ -138,6 +128,9 @@ export class WebHostingConstruct extends Construct {
         MODEL_ARN: modelArn,
         NUMBER_OF_RESULTS: String(props.numberOfResults ?? 5),
         ...(props.promptTemplate ? { PROMPT_TEMPLATE: props.promptTemplate } : {}),
+        ...(props.orchestrationPromptTemplate
+          ? { ORCHESTRATION_PROMPT_TEMPLATE: props.orchestrationPromptTemplate }
+          : {}),
       },
     });
 
@@ -157,6 +150,17 @@ export class WebHostingConstruct extends Construct {
         effect: iam.Effect.ALLOW,
         actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
         resources: [modelArn, baseModelArn],
+      })
+    );
+
+    // RetrieveAndGenerate resolves the profile before invoking it. Without this
+    // the call fails with "Not authorized to call GetInferenceProfile" - found
+    // on the first real deploy, invisible to any synth-time check.
+    this.chatFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['bedrock:GetInferenceProfile'],
+        resources: [modelArn],
       })
     );
 
@@ -193,7 +197,7 @@ export class WebHostingConstruct extends Construct {
     // ========================================
 
     const urlRewrite = new cloudfront.Function(this, 'UrlRewriteFunction', {
-      code: cloudfront.FunctionCode.fromInline(URL_REWRITE_FUNCTION),
+      code: cloudfront.FunctionCode.fromFile({ filePath: URL_REWRITE_FUNCTION_PATH }),
       runtime: cloudfront.FunctionRuntime.JS_2_0,
       comment: 'Rewrites clean URLs to the Next.js static export object keys',
     });
@@ -250,35 +254,5 @@ export class WebHostingConstruct extends Construct {
       distributionPaths: ['/*'],
     });
 
-    // ========================================
-    // 5. Outputs
-    // ========================================
-
-    new cdk.CfnOutput(this, 'WebsiteURL', {
-      value: this.distributionUrl,
-      description: 'CloudFront URL for the web UI',
-      exportName: `${stack.stackName}-WebsiteURL`,
-    });
-
-    new cdk.CfnOutput(this, 'ChatEndpoint', {
-      value: `${this.distributionUrl}/api/chat`,
-      description: 'Streaming chat endpoint (same origin as the site)',
-      exportName: `${stack.stackName}-ChatEndpoint`,
-    });
-
-    new cdk.CfnOutput(this, 'ChatFunctionName', {
-      value: this.chatFunction.functionName,
-      description: 'Name of the streaming chat Lambda (for log tailing)',
-    });
-
-    new cdk.CfnOutput(this, 'WebsiteBucketName', {
-      value: this.websiteBucket.bucketName,
-      description: 'S3 bucket name for static website',
-    });
-
-    new cdk.CfnOutput(this, 'DistributionId', {
-      value: this.distribution.distributionId,
-      description: 'CloudFront distribution ID',
-    });
   }
 }

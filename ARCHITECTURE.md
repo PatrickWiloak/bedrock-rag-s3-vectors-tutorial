@@ -101,6 +101,14 @@ browser              Lambda (streaming)          Bedrock KB
    │◄───────────────────────┤                         │
 ```
 
+### One header the browser must send
+
+CloudFront signs the origin request to the Function URL with SigV4, and Lambda does not accept unsigned payloads. So for any request **with a body** the client has to supply the SHA-256 of that body in an `x-amz-content-sha256` header - CloudFront cannot compute it on the client's behalf. [web/app/page.tsx](web/app/page.tsx) does this with the Web Crypto API before every POST; leave it out and the origin returns `The request signature we calculated does not match`, which looks like a misconfigured OAC and is not.
+
+### Two prompt templates, not one
+
+`RetrieveAndGenerate` runs two model calls: **orchestration** (turn the conversation into a search query) and **generation** (write the answer from the chunks). Each has a prompt template. Older models fall back to Bedrock's built-ins when you only set the generation template. The Claude 5.5 family does not: both templates are required, and each must contain `$query$` (the orchestration one also `$conversation_history$` and `$output_format_instructions$`), or the call is rejected with a `ValidationException`. Both templates live in [config/](config/) and are sent by the Lambda, the CLI query script and the diagnostic.
+
 ### The wire protocol
 
 The Lambda emits **NDJSON** - one JSON object per line. Newline framing is the whole trick: it needs no library on either end, and a partially received line is trivially detectable.
@@ -162,33 +170,36 @@ Its trust policy is scoped with `aws:SourceAccount`. It deliberately does **not*
 
 **The Lambda role** needs:
 - `bedrock:Retrieve` and `bedrock:RetrieveAndGenerate` on the knowledge base ARN
+- `bedrock:GetInferenceProfile` on the inference profile ARN - `RetrieveAndGenerate` resolves the profile before invoking it, and without this the call fails with `Not authorized to call GetInferenceProfile`
 - `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` on **both** the inference profile ARN **and** the underlying foundation model ARN
 
-That last point catches people out. An inference profile like `us.anthropic.claude-opus-5` routes requests to the same model in one of several Regions, and authorization is evaluated against the foundation model in whichever Region serves the request. So the policy needs both:
+That last point catches people out. An inference profile like `us.anthropic.claude-haiku-5-5` routes requests to the same model in one of several Regions, and authorization is evaluated against the foundation model in whichever Region serves the request. So the policy needs both:
 
 ```
-arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-opus-5
-arn:aws:bedrock:*::foundation-model/anthropic.claude-opus-5
+arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-haiku-5-5
+arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-5-5
 ```
 
 Granting only the profile ARN produces an `AccessDeniedException` that names a Region you never configured. [lib/web-hosting-construct.ts](lib/web-hosting-construct.ts) derives the base model ARN by stripping the Region prefix.
 
 ## Resource inventory
 
-Everything below is native CloudFormation. There are no custom resources except CDK's own `S3AutoDeleteObjects` and `CDKBucketDeployment`, which come from `autoDeleteObjects: true` and the static site upload.
+Two deploy paths, one set of resources. The CDK column is native CloudFormation with no custom resources except CDK's own `S3AutoDeleteObjects` and `CDKBucketDeployment` (from `autoDeleteObjects: true` and the static site upload). The Terraform column is first-party `hashicorp/aws` resources throughout.
 
-| Resource | Type |
-|---|---|
-| Document bucket | `AWS::S3::Bucket` |
-| Vector bucket | `AWS::S3Vectors::VectorBucket` |
-| Vector index | `AWS::S3Vectors::Index` |
-| Knowledge base | `AWS::Bedrock::KnowledgeBase` (`S3VectorsConfiguration`) |
-| Data source | `AWS::Bedrock::DataSource` |
-| Chat handler | `AWS::Lambda::Function` |
-| Streaming endpoint | `AWS::Lambda::Url` (`InvokeMode: RESPONSE_STREAM`) |
-| Website bucket | `AWS::S3::Bucket` |
-| URL rewriter | `AWS::CloudFront::Function` |
-| CDN | `AWS::CloudFront::Distribution` + two `OriginAccessControl`s |
+| Resource | CDK / CloudFormation | Terraform |
+|---|---|---|
+| Document bucket | `AWS::S3::Bucket` | `aws_s3_bucket` + policy/encryption/public-access-block |
+| Vector bucket | `AWS::S3Vectors::VectorBucket` | `aws_s3vectors_vector_bucket` |
+| Vector index | `AWS::S3Vectors::Index` | `aws_s3vectors_index` |
+| Knowledge base | `AWS::Bedrock::KnowledgeBase` (`S3VectorsConfiguration`) | `aws_bedrockagent_knowledge_base` (`S3_VECTORS`) |
+| Data source | `AWS::Bedrock::DataSource` | `aws_bedrockagent_data_source` |
+| Chat handler | `AWS::Lambda::Function` (Docker-bundled) | `aws_lambda_function` + `archive_file` |
+| Streaming endpoint | `AWS::Lambda::Url` (`InvokeMode: RESPONSE_STREAM`) | `aws_lambda_function_url` (`RESPONSE_STREAM`) + `aws_lambda_permission` |
+| Website bucket | `AWS::S3::Bucket` + `CDKBucketDeployment` | `aws_s3_bucket` + one `aws_s3_object` per file |
+| URL rewriter | `AWS::CloudFront::Function` | `aws_cloudfront_function` |
+| CDN | `AWS::CloudFront::Distribution` + two `OriginAccessControl`s | `aws_cloudfront_distribution` + two `aws_cloudfront_origin_access_control`s |
+
+The prompt template and the URL-rewrite function are read from [config/](config/) by both, so the two deployments answer and route identically.
 
 ## Learn More
 

@@ -10,56 +10,35 @@ import {
   BedrockAgentRuntimeClient,
   RetrieveAndGenerateCommand,
 } from '@aws-sdk/client-bedrock-agent-runtime';
-import {
-  CloudFormationClient,
-  DescribeStacksCommand,
-} from '@aws-sdk/client-cloudformation';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as readline from 'readline';
+import { REGION, resolveOutputs } from './outputs';
 
-const STACK_NAME = 'S3VectorRAGStack';
+// The same templates the deployed Lambda uses. The Claude 5.5 models refuse
+// RetrieveAndGenerate without both of them.
+const CONFIG_DIR = path.join(__dirname, '..', 'config');
+const PROMPT_TEMPLATE = fs.readFileSync(path.join(CONFIG_DIR, 'prompt-template.txt'), 'utf8').trimEnd();
+const ORCHESTRATION_PROMPT_TEMPLATE = fs
+  .readFileSync(path.join(CONFIG_DIR, 'orchestration-prompt-template.txt'), 'utf8')
+  .trimEnd();
 
-interface StackOutputs {
-  knowledgeBaseId: string;
-  modelArn: string;
-  region: string;
+async function getStackOutputs(): Promise<{ knowledgeBaseId: string; modelArn: string; region: string }> {
+  const { knowledgeBaseId, modelId, region, account } = await resolveOutputs();
+  // Terraform exports do not carry the account ID; derive it from STS only then.
+  const accountId = account || (await currentAccountId());
+  return {
+    knowledgeBaseId,
+    region,
+    modelArn: `arn:aws:bedrock:${region}:${accountId}:inference-profile/${modelId}`,
+  };
 }
 
-async function getStackOutputs(): Promise<StackOutputs> {
-  const cfnClient = new CloudFormationClient({});
-
-  const response = await cfnClient.send(
-    new DescribeStacksCommand({ StackName: STACK_NAME })
-  );
-
-  const stack = response.Stacks?.[0];
-  if (!stack) {
-    throw new Error(`Stack ${STACK_NAME} not found`);
-  }
-
-  const outputs = stack.Outputs || [];
-  const knowledgeBaseId = outputs.find(
-    (o) => o.OutputKey === 'KnowledgeBaseIdOutput'
-  )?.OutputValue;
-  const modelId = outputs.find((o) => o.OutputKey === 'ModelId')?.OutputValue;
-  const region = outputs.find((o) => o.OutputKey === 'Region')?.OutputValue;
-
-  if (!knowledgeBaseId || !modelId || !region) {
-    throw new Error(
-      'Required stack outputs not found. Make sure the stack has been deployed.'
-    );
-  }
-
-  // The stack ID is itself an ARN, so the account number is already in hand -
-  // no extra STS call or credential permission needed.
-  // arn:aws:cloudformation:<region>:<account>:stack/<name>/<id>
-  const account = stack.StackId?.split(':')[4];
-  if (!account) {
-    throw new Error(`Could not determine account ID from stack ID: ${stack.StackId}`);
-  }
-
-  const modelArn = `arn:aws:bedrock:${region}:${account}:inference-profile/${modelId}`;
-
-  return { knowledgeBaseId, modelArn, region };
+async function currentAccountId(): Promise<string> {
+  const { STSClient, GetCallerIdentityCommand } = await import('@aws-sdk/client-sts');
+  const identity = await new STSClient({ region: REGION }).send(new GetCallerIdentityCommand({}));
+  if (!identity.Account) throw new Error('Could not determine the AWS account ID');
+  return identity.Account;
 }
 
 /**
@@ -87,6 +66,12 @@ async function askKnowledgeBase(
           modelArn,
           retrievalConfiguration: {
             vectorSearchConfiguration: { numberOfResults: 5 },
+          },
+          generationConfiguration: {
+            promptTemplate: { textPromptTemplate: PROMPT_TEMPLATE },
+          },
+          orchestrationConfiguration: {
+            promptTemplate: { textPromptTemplate: ORCHESTRATION_PROMPT_TEMPLATE },
           },
         },
       },

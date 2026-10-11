@@ -1,43 +1,10 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { BedrockAgentClient, StartIngestionJobCommand } from '@aws-sdk/client-bedrock-agent';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveOutputs } from './outputs';
 
-const STACK_NAME = 'S3VectorRAGStack';
 const SAMPLE_DOCS_DIR = path.join(__dirname, '..', 'sample-data', 'knowledge-docs');
-
-interface StackOutputs {
-  bucketName: string;
-  knowledgeBaseId: string;
-  dataSourceId: string;
-  region: string;
-}
-
-async function getStackOutputs(): Promise<StackOutputs> {
-  const cfnClient = new CloudFormationClient({});
-
-  const response = await cfnClient.send(
-    new DescribeStacksCommand({ StackName: STACK_NAME })
-  );
-
-  const stack = response.Stacks?.[0];
-  if (!stack) {
-    throw new Error(`Stack ${STACK_NAME} not found`);
-  }
-
-  const outputs = stack.Outputs || [];
-  const bucketName = outputs.find((o: any) => o.OutputKey === 'DataBucketName')?.OutputValue;
-  const knowledgeBaseId = outputs.find((o: any) => o.OutputKey === 'KnowledgeBaseIdOutput')?.OutputValue;
-  const dataSourceId = outputs.find((o: any) => o.OutputKey === 'DataSourceIdOutput')?.OutputValue;
-  const region = outputs.find((o: any) => o.OutputKey === 'Region')?.OutputValue;
-
-  if (!bucketName || !knowledgeBaseId || !dataSourceId || !region) {
-    throw new Error('Required stack outputs not found');
-  }
-
-  return { bucketName, knowledgeBaseId, dataSourceId, region };
-}
 
 async function uploadFile(
   s3Client: S3Client,
@@ -66,6 +33,10 @@ function getContentType(filePath: string): string {
     '.pdf': 'application/pdf',
     '.json': 'application/json',
     '.html': 'text/html',
+    '.csv': 'text/csv',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.doc': 'application/msword',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
   return contentTypes[ext] || 'application/octet-stream';
 }
@@ -132,8 +103,8 @@ async function main() {
     console.log('🚀 S3 RAG Tutorial - Document Upload\n');
 
     // Get stack outputs
-    console.log('1. Fetching stack information...');
-    const { bucketName, knowledgeBaseId, dataSourceId, region } = await getStackOutputs();
+    console.log('1. Fetching deployment information...');
+    const { dataBucketName: bucketName, knowledgeBaseId, dataSourceId, region } = await resolveOutputs();
     console.log(`   ✓ Bucket: ${bucketName}`);
     console.log(`   ✓ Knowledge Base ID: ${knowledgeBaseId}`);
     console.log(`   ✓ Data Source ID: ${dataSourceId}`);

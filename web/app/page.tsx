@@ -14,6 +14,12 @@ import Citations from './components/Citations';
  */
 const CHAT_ENDPOINT = '/api/chat';
 
+/** Lower-case hex SHA-256 of a string, via the browser's Web Crypto API. */
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 const AssistantAvatar = () => (
   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200">
     <svg className="h-5 w-5 text-black" fill="currentColor" viewBox="0 0 20 20">
@@ -84,14 +90,27 @@ export default function Home() {
       let streamError: string | null = null;
 
       try {
+        const body = JSON.stringify({
+          message: question,
+          // Omitted on the first request of a conversation.
+          ...(sessionId ? { sessionId } : {}),
+        });
+
         const response = await fetch(CHAT_ENDPOINT, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: question,
-            // Omitted on the first request of a conversation.
-            ...(sessionId ? { sessionId } : {}),
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+            /**
+             * Required by CloudFront's Origin Access Control for a Lambda
+             * Function URL: CloudFront signs the request with SigV4, and
+             * Lambda does not accept unsigned payloads, so any request WITH
+             * a body must carry the SHA-256 of that body. Leave this out and
+             * the origin answers "The request signature we calculated does
+             * not match" - CloudFront cannot compute it for you.
+             */
+            'x-amz-content-sha256': await sha256Hex(body),
+          },
+          body,
         });
 
         if (!response.ok || !response.body) {

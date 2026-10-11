@@ -1,0 +1,9 @@
+# Local state and the Lambda zip stay out of git. The provider lock file
+# (.terraform.lock.hcl) IS committed, so every reader gets the provider
+# versions this was verified with.
+.terraform/
+.build/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log

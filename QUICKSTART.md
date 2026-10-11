@@ -6,13 +6,13 @@ For the full explanation of what you're building, start with [README.md](README.
 
 ## What Gets Deployed
 
-- **S3 bucket** with 17 sample company documents in three folders
+- **S3 bucket** with 16 sample company documents in three folders
 - **S3 Vectors** vector bucket and index (serverless vector database)
 - **Bedrock Knowledge Base** wired to that index
 - **Streaming Lambda** behind a Function URL, backed by `RetrieveAndGenerateStream`
 - **CloudFront + S3** serving a Next.js chat UI, with `/api/*` routed to the Lambda on the same origin
 
-No Bedrock Agent is involved - see [What changed in v2](README.md#-what-changed-in-v2-august-2026).
+No Bedrock Agent is involved - see [What changed in v2](README.md#-what-changed-in-v2-august-2026). Everything below deploys with CDK; prefix any `./scripts/deploy.sh` command with `IAC=terraform` to use the [Terraform configuration](terraform/README.md) instead (then Docker is not needed, Terraform 1.10+ is).
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ You also need the IAM permissions in [iam-policy.json](iam-policy.json) - see [R
 
 Bedrock grants access to most models automatically, but some need a one-time use-case submission (usually approved in 1-2 business days).
 
-The default model is `us.anthropic.claude-opus-5`. Check what your account can reach:
+The default model is `us.anthropic.claude-haiku-5-5`. Check what your account can reach:
 
 ```bash
 aws bedrock list-inference-profiles --region us-east-1 \
@@ -41,10 +41,10 @@ aws bedrock list-inference-profiles --region us-east-1 \
 
 Note the `us.` prefix: every current Claude model on Bedrock is served through a cross-Region **inference profile**, not as a plain on-demand foundation model.
 
-To use a cheaper, faster model for the tutorial:
+To try a stronger (and pricier) model for the tutorial:
 
 ```bash
-MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0 ./scripts/deploy.sh infra
+MODEL_ID=us.anthropic.claude-sonnet-5-5 ./scripts/deploy.sh infra
 ```
 
 ## Installation & Deployment
@@ -52,8 +52,8 @@ MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0 ./scripts/deploy.sh infra
 ### The fast path
 
 ```bash
-git clone https://github.com/PatrickWiloak/bedrock-agents-rag-s3-tutorial.git
-cd bedrock-agents-rag-s3-tutorial
+git clone https://github.com/PatrickWiloak/bedrock-rag-s3-vectors-tutorial.git
+cd bedrock-rag-s3-vectors-tutorial
 npm install
 ./scripts/deploy.sh full
 ```
@@ -85,7 +85,7 @@ npm run upload-docs
 ```
 
 ```
-✓ Uploaded 17 documents to S3
+✓ Uploaded 16 documents to S3
 ✓ Knowledge Base ingestion started
 ```
 
@@ -168,7 +168,7 @@ Run the diagnostic first - it checks each layer in order and stops at the real f
 | Ingestion fails: `metadata must have at most 2048 bytes` | The index is missing its `nonFilterableMetadataKeys`. See [ARCHITECTURE.md](ARCHITECTURE.md#ingestion-flow). |
 | `cdk deploy` fails bundling the Lambda | Docker isn't running. |
 | Web UI shows "The chat API isn't reachable" | Expected under `next dev` (there is no CloudFront). On a real deployment, check the Lambda logs and CloudFront propagation. |
-| Stack fails on bucket name already exists | Redeploy with a fresh ID: `npx cdk deploy --context deploymentId=$(date -u +%y%m%d-%H%M)` |
+| Stack fails on bucket name already exists | S3 has not released a just-deleted name yet. Wait a minute, or deploy once with `--context deploymentId=<anything-short>` |
 | Answer arrives all at once instead of streaming | CloudFront `compress` is on for `/api/*`. It must be `false`. |
 
 ## Clean Up
@@ -183,7 +183,7 @@ It asks you to type the stack name to confirm.
 
 ### Cost estimate
 
-Roughly **$1-5 total** for working through the tutorial, almost all of it model inference. Switching to `us.anthropic.claude-haiku-4-5-20251001-v1:0` cuts the generation cost substantially.
+Roughly **$1-5 total** for working through the tutorial, almost all of it model inference. The default `us.anthropic.claude-haiku-5-5` is already the cheapest option; switching up to Sonnet 5.5 or Opus 5.5 raises the generation cost several times over.
 
 Idle cost after deployment is close to zero - S3 Vectors bills per request and per GB stored rather than for provisioned capacity - but **delete the stack when you're done anyway**.
 

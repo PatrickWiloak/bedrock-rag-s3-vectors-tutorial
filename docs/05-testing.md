@@ -219,7 +219,7 @@ aws ce get-cost-and-usage \
 
 Reduction levers, in order of impact:
 
-1. **Cheaper model** - Haiku 4.5 instead of Opus 5 is the single biggest lever
+1. **Cheaper model** - Haiku 5.5 (the default) instead of Sonnet 5.5 or Opus 5.5 is the single biggest lever
 2. **Lower `numberOfResults`** - fewer chunks means fewer input tokens per query
 3. **Smaller chunks** - same effect
 4. **Cache repeated questions** - identical questions shouldn't hit Bedrock twice

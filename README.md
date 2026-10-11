@@ -22,22 +22,33 @@ If you need custom software built, [get in touch](https://noblerworks.com/).
 # AWS Bedrock RAG Tutorial with S3 Vectors
 
 **Build a retrieval-augmented Q&A system on Amazon Bedrock Knowledge Bases and S3 Vectors -
-one CDK command, a Next.js UI, and the debugging tools to see what the retriever actually returned.**
+one command (CDK or Terraform), a Next.js UI, and the debugging tools to see what the retriever actually returned.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-3d5a80?style=flat-square)](LICENSE)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/bedrock/)
 [![AWS CDK](https://img.shields.io/badge/IaC-AWS%20CDK-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cdk/)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC?style=flat-square&logo=terraform&logoColor=white)](terraform/README.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Deploy time](https://img.shields.io/badge/deploy-%3C10%20min-2f7757?style=flat-square)](#quick-start)
 ![Cost vs OpenSearch](https://img.shields.io/badge/vs%20OpenSearch-up%20to%2090%25%20cheaper-2f7757?style=flat-square)
 
 </div>
 
-> **Tutorial:** Build a document Q&A system on AWS using Amazon Bedrock Knowledge Bases and S3 Vectors. Deployed with CDK, streamed token-by-token through `RetrieveAndGenerateStream`, with a Next.js web UI and citations.
+> **Tutorial:** Build a document Q&A system on AWS using Amazon Bedrock Knowledge Bases and S3 Vectors. Deployed with CDK or Terraform (your choice, same stack), streamed token-by-token through `RetrieveAndGenerateStream`, with a Next.js web UI and citations.
 
-Learn how to build and deploy a **Retrieval-Augmented Generation (RAG)** system using Amazon Bedrock Knowledge Bases, Amazon S3 Vectors, and AWS CDK.
+Learn how to build and deploy a **Retrieval-Augmented Generation (RAG)** system using Amazon Bedrock Knowledge Bases, Amazon S3 Vectors, and either AWS CDK or Terraform.
 
 ---
+
+## 📢 What changed in v2.2 (October 2026)
+
+- **Terraform is a first-class deploy path.** [`terraform/`](terraform/) builds the identical stack from first-party `hashicorp/aws` resources - `aws_s3vectors_vector_bucket`, `aws_s3vectors_index`, and the `S3_VECTORS` storage type on `aws_bedrockagent_knowledge_base` all exist now, so no community module and no `awscc` provider. `IAC=terraform ./scripts/deploy.sh full` does everything the CDK path does. See [terraform/README.md](terraform/README.md) for the differences.
+- **Deployed and verified for real.** v2 shipped verified only by `tsc`, `cdk synth` and `next build`. v2.2 was deployed end to end from both paths, and that found bugs no synth-time check could: the browser must send an `x-amz-content-sha256` header for POSTs through CloudFront OAC, the Lambda role needs `bedrock:GetInferenceProfile`, the Claude 5.5 models require **both** prompt templates (each with `$query$`), outputs declared inside a construct get path-mangled keys, and the timestamp in resource names made every redeploy replace the knowledge base and lose its vectors. All fixed; `./test-bedrock.sh` now also *measures* that the answer streams through CloudFront rather than arriving in one buffered blob.
+- **Default model is Claude Haiku 5.5** (`us.anthropic.claude-haiku-5-5`), the cheapest and fastest current model - the right default for a tutorial. Sonnet 5.5 and Opus 5.5 are one flag away.
+- **The sample corpus is consistent.** The five `.docx` samples described a different fictional company, so answers could cite another company's policies as Nobler Works'. They are rebranded, and a duplicated handbook was removed: 16 documents now.
+- **Hybrid search is documented correctly.** AWS states S3 Vectors is semantic-only; two chapters used to hedge. They no longer do.
+- **Repository renamed** to `bedrock-rag-s3-vectors-tutorial` - there has been no agent since v2. GitHub redirects the old URL. `v1` and `v2.1` tags mark the earlier architectures.
+- Shared pieces moved to [`config/`](config/): the prompt template and the CloudFront URL-rewrite function are read by both deploy paths. CI runs `tsc`, `next build`, `cdk synth`, `terraform fmt` and `terraform validate` on every push.
 
 ## 📢 What changed in v2 (August 2026)
 
@@ -59,7 +70,7 @@ If you specifically want an *agent* (tools, multi-step orchestration, action gro
 The chat endpoint is now a Lambda Function URL with `invokeMode: RESPONSE_STREAM`, served at `/api/*` from the same CloudFront distribution as the site. API Gateway is gone: its Lambda proxy integration buffers the whole response, which makes streaming impossible. Because the API is now same-origin, the runtime `config.json` lookup, the CORS configuration, and a trailing-slash URL-joining bug all disappeared with it.
 
 **4. Model IDs are inference profiles now.**
-Every current Claude model on Bedrock is served **exclusively** through a cross-Region inference profile - none of them support `ON_DEMAND` invocation any more. So model IDs look like `us.anthropic.claude-opus-5`, not `anthropic.claude-3-sonnet-20240229-v1:0`. The old default model no longer exists in the Bedrock catalog at all. See [Choosing a model](#choosing-a-model).
+Every current Claude model on Bedrock is served **exclusively** through a cross-Region inference profile - none of them support `ON_DEMAND` invocation any more. So model IDs look like `us.anthropic.claude-haiku-5-5`, not `anthropic.claude-3-sonnet-20240229-v1:0`. The old default model no longer exists in the Bedrock catalog at all. See [Choosing a model](#choosing-a-model).
 
 ---
 
@@ -149,8 +160,7 @@ You need:
 - ✅ An AWS account with **Bedrock model access enabled** (see below)
 - ✅ **Node.js 20+**
 - ✅ AWS CLI configured with credentials
-- ✅ AWS CDK: `npm install -g aws-cdk`
-- ✅ **Docker running** - CDK bundles the Lambda in a container
+- ✅ **One of:** AWS CDK (`npm install -g aws-cdk`) **plus Docker running** (CDK bundles the Lambda in a container), **or** Terraform 1.10+ (no Docker needed) - see [Deploying with Terraform](#deploying-with-terraform)
 - ✅ `jq` - used by `test-bedrock.sh` and `scripts/deploy.sh`
 - ✅ The [required IAM permissions](#required-iam-permissions)
 
@@ -158,7 +168,7 @@ You need:
 
 ### Choosing a model
 
-**The default is `us.anthropic.claude-opus-5`.**
+**The default is `us.anthropic.claude-haiku-5-5`.**
 
 Every current Claude model on Bedrock is reachable only through a **cross-Region inference profile**, so model IDs carry a Region prefix (`us.`, `eu.`, `apac.`, or `global.`). Check what your account can actually reach:
 
@@ -176,16 +186,16 @@ aws bedrock list-foundation-models --region us-east-1 --by-provider anthropic \
 Override the model at deploy time without editing any code:
 
 ```bash
-cdk deploy --context modelId=us.anthropic.claude-haiku-4-5-20251001-v1:0
+cdk deploy --context modelId=us.anthropic.claude-sonnet-5-5
 ```
 
 **Sensible choices:**
 
 | Model | When to use it |
 |---|---|
-| `us.anthropic.claude-opus-5` | Default. Best answer quality. |
-| `us.anthropic.claude-sonnet-5` | Strong quality at lower cost. |
-| `us.anthropic.claude-haiku-4-5-20251001-v1:0` | **Cheapest and fastest** - a good choice for working through the tutorial. |
+| `us.anthropic.claude-haiku-5-5` | **Default.** Cheapest and fastest; answers grounded in a small corpus do not need more. |
+| `us.anthropic.claude-sonnet-5-5` | Stronger synthesis across several documents, at a few times the cost. |
+| `us.anthropic.claude-opus-5-5` | Best answer quality. Use it when you want to compare, not to learn. |
 
 **About model access:** Bedrock grants access to most models automatically, but some require you to submit use-case details first (usually approved within 1-2 business days). If a query fails with `AccessDeniedException` on the model, enable it under **Model access** in the Bedrock console. `./test-bedrock.sh` diagnoses this specifically.
 
@@ -199,8 +209,8 @@ This repository ships a ready-to-use policy in [iam-policy.json](iam-policy.json
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/PatrickWiloak/bedrock-agents-rag-s3-tutorial.git
-cd bedrock-agents-rag-s3-tutorial
+git clone https://github.com/PatrickWiloak/bedrock-rag-s3-vectors-tutorial.git
+cd bedrock-rag-s3-vectors-tutorial
 
 # 2. Get your AWS account ID and IAM username
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -224,13 +234,19 @@ If you already have `AdministratorAccess`, you can skip this.
 ### Option 1: Automated setup (fastest) 🚀
 
 ```bash
-git clone https://github.com/PatrickWiloak/bedrock-agents-rag-s3-tutorial.git
-cd bedrock-agents-rag-s3-tutorial
+git clone https://github.com/PatrickWiloak/bedrock-rag-s3-vectors-tutorial.git
+cd bedrock-rag-s3-vectors-tutorial
 npm install
 ./scripts/deploy.sh full
 ```
 
 `full` checks prerequisites, builds the web UI, deploys the stack, uploads the sample documents, waits for ingestion, runs a health check, and prints the CloudFront URL.
+
+Prefer Terraform? Same script, same result:
+
+```bash
+IAC=terraform ./scripts/deploy.sh full
+```
 
 The script has subcommands for everything else:
 
@@ -280,11 +296,23 @@ See [web/README.md](web/README.md) for the UI development workflow.
 
 ### Verifying a deployment
 
-`./test-bedrock.sh` walks the whole stack bottom-up - credentials, stack outputs, model access, knowledge base state, ingestion status, and a real end-to-end query - and stops at the first thing that is actually broken. Run it whenever something doesn't work.
+`./test-bedrock.sh` walks the whole stack bottom-up - credentials, stack outputs, model access, knowledge base state, ingestion status, a real end-to-end query, and the streaming endpoint - and stops at the first thing that is actually broken. The last check time-stamps each streamed line and fails if the whole answer arrived in one instant, which is what a buffering CloudFront behaviour looks like. Run it whenever something doesn't work (`IAC=terraform ./test-bedrock.sh` for a Terraform deployment).
+
+## Deploying with Terraform
+
+[`terraform/`](terraform/) is a complete second implementation of the stack - the same buckets, index, knowledge base, streaming Lambda and CloudFront distribution - in plain Terraform against the `hashicorp/aws` provider. Nothing in it is a community module; S3 Vectors and the `S3_VECTORS` knowledge base storage type are first-party resources now.
+
+```bash
+IAC=terraform ./scripts/deploy.sh full      # deploy everything
+IAC=terraform ./test-bedrock.sh             # verify, including streaming
+IAC=terraform ./scripts/deploy.sh destroy   # tear down
+```
+
+The two paths read the same [`config/prompt-template.txt`](config/prompt-template.txt) and [`config/cloudfront-url-rewrite.js`](config/cloudfront-url-rewrite.js), so they cannot drift apart on behaviour. What *is* different (Lambda packaging without Docker, per-file site upload, a random name suffix instead of a timestamp) is explained in [terraform/README.md](terraform/README.md). The chapters in `docs/` walk the CDK code; every resource they describe has a same-named counterpart in `terraform/`.
 
 ## Sample Data: Nobler Works
 
-The tutorial includes **17 realistic sample documents** for a fictional SaaS company, organised into three folders. Alongside the Markdown files listed below, six are `.docx` - deliberately, so you can see Bedrock's parsing handle more than plain text:
+The tutorial includes **16 realistic sample documents** for a fictional SaaS company, organised into three folders. Alongside the Markdown files listed below, five are `.docx` - deliberately, so you can see Bedrock's parsing handle more than plain text:
 
 ### 📊 Financial-Data/
 - **Q4 2024 Quarterly Report** - financial results ($12.4M revenue, profitability metrics)
@@ -303,7 +331,7 @@ The tutorial includes **17 realistic sample documents** for a fictional SaaS com
 - **Product Roadmap Planning (Q1 2025)** - AI features, mobile app, API marketplace
 - **Engineering Sprint Retrospective** - Sprint 24 review, velocity, technical debt
 
-Plus `.docx` versions of the dress code, vacation policy, employee handbook, and three further meeting notes.
+Plus `.docx` files for the dress code policy, the vacation policy, and three further meeting notes (a CS team sync, marketing campaign planning, and general meeting notes).
 
 **Try these questions:**
 - "What was our Q4 2024 revenue?"
@@ -323,22 +351,32 @@ Plus `.docx` versions of the dress code, vacation policy, employee handbook, and
 | [05 - Testing](docs/05-testing.md) | Test scripts, evaluating answer quality, debugging |
 | [06 - Advanced](docs/06-advanced.md) | Metadata filtering, multiple knowledge bases, guardrails, production concerns |
 | [07 - Web Interface](docs/07-web-interface.md) | The Next.js UI, the streaming Lambda, CloudFront |
+| [Terraform](terraform/README.md) | The same stack in Terraform, and how it differs from the CDK path |
 
 Also see [docs/S3-VECTORS-SETUP.md](docs/S3-VECTORS-SETUP.md) for S3 Vectors specifics and limits.
 
 ## Project Structure
 
 ```
-bedrock-agents-rag-s3-tutorial/
+bedrock-rag-s3-vectors-tutorial/
 ├── README.md                       # This file
 ├── ARCHITECTURE.md                 # Request flow in detail
 ├── QUICKSTART.md                   # 10-minute quick start
 ├── CLAUDE.md                       # Context for AI assistants working here
 ├── TODO.md                         # Open work on this repo
-├── test-bedrock.sh                 # Bottom-up deployment diagnostic
+├── test-bedrock.sh                 # Bottom-up deployment diagnostic (incl. a streaming check)
 ├── iam-policy.json                 # Permissions needed to deploy
 ├── .nvmrc                          # Node version (22)
+├── .github/workflows/ci.yml        # tsc, next build, cdk synth, terraform fmt + validate
+├── config/
+│   ├── prompt-template.txt         # Answer style - read by BOTH deploy paths
+│   └── cloudfront-url-rewrite.js   # Clean-URL viewer-request function - read by both
 ├── docs/                           # Tutorial chapters 01-07
+├── terraform/                      # The same stack in Terraform (see its README)
+│   ├── knowledge_base.tf           # S3 Vectors + Knowledge Base + data source
+│   ├── lambda.tf                   # Streaming Lambda + Function URL
+│   ├── cloudfront.tf               # CloudFront, OACs, website bucket
+│   └── web.tf                      # Static export upload
 ├── bin/
 │   └── s3-rag-app.ts               # CDK app entry point
 ├── lib/
@@ -348,7 +386,8 @@ bedrock-agents-rag-s3-tutorial/
 ├── lambda/
 │   └── chat.mjs                    # Streaming RetrieveAndGenerateStream handler
 ├── scripts/
-│   ├── deploy.sh                   # Deployment entry point (subcommands)
+│   ├── deploy.sh                   # Deployment entry point (subcommands; IAC=cdk|terraform)
+│   ├── outputs.ts                  # Resource IDs from env (Terraform) or CloudFormation (CDK)
 │   ├── upload-documents.ts         # Upload sample docs, start ingestion
 │   ├── test-rag.ts                 # Query from the terminal (demo/interactive)
 │   └── check-status.ts             # Ingestion job status
@@ -367,6 +406,8 @@ bedrock-agents-rag-s3-tutorial/
 
 **CDK** - stacks and constructs, L1 vs L2, resource dependencies, IAM grants, asset bundling, static site deployment.
 
+**Terraform** - the same resources as first-party provider resources, `archive_file` Lambda packaging, `fileset()` uploads with content types, plan-time `precondition`s, and how CloudFront OAC for a Lambda Function URL is wired without a construct doing it for you.
+
 **RAG** - chunking and overlap, embeddings and dimensions, cosine similarity, top-k retrieval, grounding and citations, prompt templates.
 
 **Bedrock APIs** - `RetrieveAndGenerateStream`, `RetrieveAndGenerate`, `Retrieve`, ingestion jobs, inference profiles, and why the distinction between a foundation model and an inference profile matters for IAM.
@@ -376,7 +417,7 @@ bedrock-agents-rag-s3-tutorial/
 ## Customization Points
 
 1. **Document processing** - chunk size and overlap ([lib/s3-rag-stack.ts](lib/s3-rag-stack.ts)), file formats, metadata
-2. **Answer style** - the `PROMPT_TEMPLATE` constant in [lib/s3-rag-stack.ts](lib/s3-rag-stack.ts)
+2. **Answer style** - [config/prompt-template.txt](config/prompt-template.txt), read by both deploy paths
 3. **Retrieval** - `numberOfResults`, metadata filtering, search type
 4. **Model** - `--context modelId=...` at deploy time, or the `DEFAULT_MODEL_ID` constant
 
@@ -391,21 +432,22 @@ Running this tutorial costs roughly **$1-5 total**, dominated by model inference
 | S3 (documents) | ~$0.023/GB/month - negligible at this size |
 | S3 Vectors | Pay per request and per GB stored - cents for this dataset |
 | Bedrock embeddings | One-off at ingestion; Titan v2 is very cheap |
-| Bedrock generation | The main cost. Per token, varies a lot by model - Haiku 4.5 is far cheaper than Opus 5 |
+| Bedrock generation | The main cost. Per token, varies a lot by model - Haiku 5.5 (the default) is far cheaper than Opus 5.5 |
 | Lambda | Free tier covers tutorial usage |
 | CloudFront | Free tier covers tutorial usage |
 
 ### Cleanup
 
-Everything in the stack is native CloudFormation, so teardown is one command:
+Everything in the stack is native CloudFormation (or first-party Terraform resources), so teardown is one command:
 
 ```bash
-./scripts/deploy.sh destroy      # or: npm run destroy
+./scripts/deploy.sh destroy                 # CDK (or: npm run destroy)
+IAC=terraform ./scripts/deploy.sh destroy   # Terraform
 ```
 
 This removes the document bucket, the vector bucket and index, the knowledge base, the data source, the website bucket, CloudFront, and the Lambda.
 
-> **The old manual-teardown checklist is no longer needed.** It existed because the preview-era custom resources could not reliably delete themselves. If you deployed the *original* version of this tutorial, that stack still needs the manual steps - see the [v1 README](https://github.com/PatrickWiloak/bedrock-agents-rag-s3-tutorial/blob/e7b0810/README.md#detailed-cleanup-steps-option-a).
+> **The old manual-teardown checklist is no longer needed.** It existed because the preview-era custom resources could not reliably delete themselves. If you deployed the *original* version of this tutorial, that stack still needs the manual steps - see the [v1 README](https://github.com/PatrickWiloak/bedrock-rag-s3-vectors-tutorial/blob/e7b0810/README.md#detailed-cleanup-steps-option-a).
 
 Confirm nothing is left behind:
 

@@ -241,18 +241,5 @@ export class KnowledgeBaseConstruct extends Construct {
 
     this.dataSourceId = this.dataSource.attrDataSourceId;
 
-    // ========================================
-    // 5. Outputs
-    // ========================================
-
-    new cdk.CfnOutput(this, 'VectorBucketName', {
-      value: this.vectorBucket.vectorBucketName!,
-      description: 'S3 Vector Bucket Name',
-    });
-
-    new cdk.CfnOutput(this, 'VectorIndexArn', {
-      value: this.vectorIndex.attrIndexArn,
-      description: 'Vector Index ARN',
-    });
   }
 }

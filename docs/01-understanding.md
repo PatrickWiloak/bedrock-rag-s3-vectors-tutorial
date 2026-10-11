@@ -68,7 +68,7 @@ Bedrock is AWS's managed service for foundation models. You call an API; AWS run
 
 This is the single most common stumbling block, so it's worth being precise.
 
-A **foundation model** has an ID like `anthropic.claude-opus-5`. An **inference profile** has an ID like `us.anthropic.claude-opus-5` and routes your request to that model in one of several Regions.
+A **foundation model** has an ID like `anthropic.claude-haiku-5-5`. An **inference profile** has an ID like `us.anthropic.claude-haiku-5-5` and routes your request to that model in one of several Regions.
 
 **Every current Claude model on Bedrock is inference-profile only.** None of them support direct `ON_DEMAND` invocation. Check for yourself:
 
@@ -147,7 +147,7 @@ More dimensions means better semantic fidelity and more storage. 1024 is the sen
 
 ### Prompt engineering
 
-The retrieved chunks don't go to the model raw. They're inserted into a prompt template that tells the model how to behave. This tutorial's template lives in `PROMPT_TEMPLATE` in [lib/s3-rag-stack.ts](../lib/s3-rag-stack.ts).
+The retrieved chunks don't go to the model raw. They're inserted into a prompt template that tells the model how to behave. This tutorial's template lives in [config/prompt-template.txt](../config/prompt-template.txt); the CDK stack and the Terraform configuration both read that one file.
 
 A template **must** contain the `$search_results$` placeholder, which Bedrock replaces with the retrieved chunks. Omit it and the model gets no context at all.
 
@@ -170,11 +170,11 @@ Light usage (a few hundred queries while working through the tutorial):
 |---|---|
 | S3 document storage | Pennies |
 | S3 Vectors storage + requests | Pennies |
-| Titan embeddings (ingestion) | Pennies - a one-off for ~17 documents |
+| Titan embeddings (ingestion) | Pennies - a one-off for 16 documents |
 | Claude generation | The dominant cost; varies by model and query count |
 | Lambda, CloudFront | Free tier |
 
-**Total: roughly $1-5.** Using `us.anthropic.claude-haiku-4-5-20251001-v1:0` instead of Opus 5 cuts the dominant line item substantially.
+**Total: roughly $1-5.** The default `us.anthropic.claude-haiku-5-5` keeps the dominant line item small; Sonnet 5.5 or Opus 5.5 multiply it several times.
 
 ## Use cases
 

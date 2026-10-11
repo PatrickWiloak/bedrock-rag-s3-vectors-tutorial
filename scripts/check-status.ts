@@ -1,42 +1,10 @@
-import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation';
 import { BedrockAgentClient, ListIngestionJobsCommand, GetIngestionJobCommand } from '@aws-sdk/client-bedrock-agent';
-
-const STACK_NAME = 'S3VectorRAGStack';
-
-interface StackOutputs {
-  knowledgeBaseId: string;
-  dataSourceId: string;
-  region: string;
-}
-
-async function getStackOutputs(): Promise<StackOutputs> {
-  const cfnClient = new CloudFormationClient({});
-
-  const response = await cfnClient.send(
-    new DescribeStacksCommand({ StackName: STACK_NAME })
-  );
-
-  const stack = response.Stacks?.[0];
-  if (!stack) {
-    throw new Error(`Stack ${STACK_NAME} not found`);
-  }
-
-  const outputs = stack.Outputs || [];
-  const knowledgeBaseId = outputs.find((o: any) => o.OutputKey === 'KnowledgeBaseIdOutput')?.OutputValue;
-  const dataSourceId = outputs.find((o: any) => o.OutputKey === 'DataSourceIdOutput')?.OutputValue;
-  const region = outputs.find((o: any) => o.OutputKey === 'Region')?.OutputValue;
-
-  if (!knowledgeBaseId || !dataSourceId || !region) {
-    throw new Error('Required stack outputs not found');
-  }
-
-  return { knowledgeBaseId, dataSourceId, region };
-}
+import { resolveOutputs } from './outputs';
 
 async function checkIngestionStatus() {
   console.log('🔍 Checking Ingestion Status\n');
 
-  const { knowledgeBaseId, dataSourceId, region } = await getStackOutputs();
+  const { knowledgeBaseId, dataSourceId, region } = await resolveOutputs();
   console.log(`Knowledge Base: ${knowledgeBaseId}`);
   console.log(`Data Source: ${dataSourceId}`);
   console.log(`Region: ${region}\n`);
@@ -101,7 +69,8 @@ async function checkIngestionStatus() {
       if (stats) {
         console.log('\nStatistics:');
         console.log(`  Documents Scanned: ${stats.numberOfDocumentsScanned || 0}`);
-        console.log(`  Documents Modified: ${stats.numberOfModifiedDocumentsIndexed || 0}`);
+        console.log(`  Documents Indexed (new): ${stats.numberOfNewDocumentsIndexed || 0}`);
+        console.log(`  Documents Indexed (modified): ${stats.numberOfModifiedDocumentsIndexed || 0}`);
         console.log(`  Documents Deleted: ${stats.numberOfDocumentsDeleted || 0}`);
         console.log(`  Documents Failed: ${stats.numberOfDocumentsFailed || 0}`);
       }
@@ -155,7 +124,7 @@ async function main() {
   } catch (error) {
     console.error('\n❌ Error:', error);
     console.log('\nMake sure you have:');
-    console.log('1. Deployed the stack: cdk deploy');
+    console.log('1. Deployed the stack: ./scripts/deploy.sh infra (CDK) or IAC=terraform ./scripts/deploy.sh infra');
     console.log('2. Configured AWS credentials');
     process.exit(1);
   }

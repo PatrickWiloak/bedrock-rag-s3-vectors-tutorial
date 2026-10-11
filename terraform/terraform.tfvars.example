@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and edit. Every value has a default; this file only
+# exists to show what is tunable without touching the .tf files.
+
+region      = "us-east-1"
+aws_profile = null # or a named profile, e.g. "noblerworks"
+
+# Inference profile for answer generation. Haiku 5.5 is the cheapest and
+# fastest; try Sonnet 5.5 or Opus 5.5 to see what stronger synthesis buys.
+model_id = "us.anthropic.claude-haiku-5-5"
+
+number_of_results        = 5
+chunk_size               = 300
+chunk_overlap_percentage = 7

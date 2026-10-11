@@ -35,7 +35,7 @@ All AWS credentials live in the Lambda's IAM role. Nothing sensitive reaches the
 ## Prerequisites
 
 - Node.js 20+ (22 recommended; see [`.nvmrc`](../.nvmrc))
-- The CDK stack deployed (see the [root README](../README.md))
+- The stack deployed with either CDK or Terraform (see the [root README](../README.md))
 
 ## Quick start
 
@@ -52,10 +52,10 @@ Or manually:
 
 ```bash
 npm run build:web
-npx cdk deploy
+npx cdk deploy                         # or: terraform -chdir=terraform apply
 ```
 
-**Build before deploying.** `cdk deploy` fails at synthesis if `web/out` doesn't exist.
+**Build before deploying.** `cdk deploy` fails at synthesis if `web/out` doesn't exist, and the Terraform plan fails its precondition for the same reason.
 
 Get your URL:
 

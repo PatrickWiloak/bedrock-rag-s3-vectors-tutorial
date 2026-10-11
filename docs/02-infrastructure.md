@@ -1,5 +1,7 @@
 # Step 2: Setting Up Infrastructure
 
+> **Terraform instead of CDK?** The same stack lives in [terraform/](../terraform/), resource for resource. This chapter walks the CDK code because that is where the explanatory comments are, but every decision below applies to both; [terraform/README.md](../terraform/README.md) covers the few places the tooling differs. To deploy with Terraform, prefix the `./scripts/deploy.sh` commands with `IAC=terraform`.
+
 Walk through the CDK stack resource by resource, then deploy it.
 
 ## What we'll deploy
@@ -39,13 +41,15 @@ Three constructs, roughly 350 lines total.
 
 The stack does four things.
 
-**1. Generates a deployment ID.** Vector bucket and knowledge base names must be unique per account, and S3 caps bucket names at 63 characters. A `YYMMDD-HHMM` stamp keeps teardown/redeploy cycles from colliding:
+**1. Derives a deployment ID.** Vector bucket and knowledge base names must be unique per account, and S3 caps bucket names at 63 characters, so every name carries a short suffix taken from the stack's own UUID:
 
 ```typescript
-const deploymentId = this.node.tryGetContext('deploymentId') || /* timestamp */;
+const deploymentId =
+  this.node.tryGetContext('deploymentId') ||
+  /* last segment of the stack's own UUID */;
 ```
 
-Override it: `cdk deploy --context deploymentId=251021-1540`
+The suffix must be **stable across deploys**: CloudFormation implements a renamed bucket, index or knowledge base as delete-and-recreate, so a suffix that changed on every `cdk deploy` (v2 used a timestamp) would discard every document and vector on every update. The stack UUID is fixed for the life of the stack and changes only when you destroy and recreate it, which is exactly when a fresh name is wanted. Override it if you must: `cdk deploy --context deploymentId=mytest1`
 
 **2. Creates the document bucket.**
 
@@ -67,7 +71,7 @@ const dataBucket = new s3.Bucket(this, 'DataBucket', {
 **4. Declares the model and prompt template.**
 
 ```typescript
-const DEFAULT_MODEL_ID = 'us.anthropic.claude-opus-5';
+const DEFAULT_MODEL_ID = 'us.anthropic.claude-haiku-5-5';
 const modelId = this.node.tryGetContext('modelId') || DEFAULT_MODEL_ID;
 ```
 
@@ -195,12 +199,12 @@ Add `dataPrefix: 'Financial-Data/'` to index only one folder.
 No code change needed:
 
 ```bash
-cdk deploy --context modelId=us.anthropic.claude-haiku-4-5-20251001-v1:0
+cdk deploy --context modelId=us.anthropic.claude-sonnet-5-5
 ```
 
 ### 4. Answer style
 
-Edit `PROMPT_TEMPLATE` in `lib/s3-rag-stack.ts`. It must contain `$search_results$`. Covered in [chapter 04](04-customization.md).
+Edit [config/prompt-template.txt](../config/prompt-template.txt), which both the CDK stack and the Terraform configuration read. It must contain `$search_results$`. Covered in [chapter 04](04-customization.md).
 
 ## Deployment steps
 
@@ -328,7 +332,7 @@ Or run the whole check at once:
 | `metadata must have at most 2048 bytes` during ingestion | The index is missing `nonFilterableMetadataKeys`. |
 | `Cannot find asset ... web/out` | Run `npm run build:web` first. |
 | Bundling fails / cannot pull image | Docker isn't running. |
-| `Bucket already exists` | Deploy with a fresh ID: `npx cdk deploy --context deploymentId=$(date -u +%y%m%d-%H%M)` |
+| `Bucket already exists` | A previous stack with the same name was deleted moments ago and S3 has not released the name yet. Wait a minute, or deploy once with `--context deploymentId=<anything-short>` |
 | Answer arrives all at once, not streaming | `compress` must be `false` on the `/api/*` behaviour. |
 | `Rate exceeded` | Bedrock throttling. Wait and retry. |
 | `Stack already exists` in `ROLLBACK_COMPLETE` | `cdk destroy` then redeploy - CloudFormation can't update from that state. |

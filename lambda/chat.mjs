@@ -28,11 +28,21 @@ const MODEL_ARN = process.env.MODEL_ARN;
 const NUMBER_OF_RESULTS = Number(process.env.NUMBER_OF_RESULTS ?? '5');
 
 /**
- * Optional prompt template. Must contain the `$search_results$` placeholder,
- * which Bedrock replaces with the retrieved chunks. Unset means Bedrock's
- * built-in template.
+ * Prompt templates.
+ *
+ * GENERATION writes the answer from the retrieved chunks; it must contain
+ * `$search_results$`. ORCHESTRATION turns the conversation into a search
+ * query; it must contain `$conversation_history$` and
+ * `$output_format_instructions$`.
+ *
+ * Both are optional for older models, where unset means Bedrock's built-in
+ * templates. **The Claude 5.5 family (Haiku, Sonnet, Opus 5.5) requires both
+ * templates, and each must also contain `$query$`.** Leave either out and
+ * RetrieveAndGenerate fails with a ValidationException naming the missing
+ * piece. Both ship in config/ so the CDK and Terraform paths send the same text.
  */
 const PROMPT_TEMPLATE = process.env.PROMPT_TEMPLATE;
+const ORCHESTRATION_PROMPT_TEMPLATE = process.env.ORCHESTRATION_PROMPT_TEMPLATE;
 
 const bedrock = new BedrockAgentRuntimeClient({ region: REGION });
 
@@ -52,7 +62,6 @@ const TITLES = {
   'accounts-receivable-aging-report-2025-01.md': 'Accounts Receivable Aging Report',
   'benefits-guide-2025.md': 'Benefits Guide 2025',
   'employee-handbook.md': 'Employee Handbook',
-  'employee-handbook.docx': 'Employee Handbook',
   'remote-work-policy.md': 'Remote Work Policy',
   'performance-review-guidelines.md': 'Performance Review Guidelines',
   'Dress_Code_Policy.docx': 'Dress Code Policy',
@@ -168,6 +177,13 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
               ? {
                   generationConfiguration: {
                     promptTemplate: { textPromptTemplate: PROMPT_TEMPLATE },
+                  },
+                }
+              : {}),
+            ...(ORCHESTRATION_PROMPT_TEMPLATE
+              ? {
+                  orchestrationConfiguration: {
+                    promptTemplate: { textPromptTemplate: ORCHESTRATION_PROMPT_TEMPLATE },
                   },
                 }
               : {}),

@@ -1,7 +1,7 @@
 {
-  "name": "bedrock-agents-rag-s3-tutorial",
-  "version": "2.0.0",
-  "description": "Learn to build RAG systems with Amazon Bedrock Knowledge Bases and S3 Vectors",
+  "name": "bedrock-rag-s3-vectors-tutorial",
+  "version": "2.2.0",
+  "description": "Learn to build RAG systems with Amazon Bedrock Knowledge Bases and S3 Vectors - deploy with CDK or Terraform",
   "private": true,
   "workspaces": [
     "web"
@@ -43,6 +43,7 @@
     "@aws-sdk/client-bedrock-runtime": "^3.1121.0",
     "@aws-sdk/client-cloudformation": "^3.1121.0",
     "@aws-sdk/client-s3": "^3.1121.0",
+    "@aws-sdk/client-sts": "^3.1149.0",
     "aws-cdk-lib": "^2.267.0",
     "constructs": "^10.4.2"
   }

@@ -22,7 +22,7 @@ npm run upload-docs          # or: ./scripts/deploy.sh docs
 It uploads everything under `sample-data/knowledge-docs/`, preserving the folder structure, then calls `StartIngestionJob`:
 
 ```
-✓ Uploaded 17 documents to S3
+✓ Uploaded 16 documents to S3
 ✓ Knowledge Base ingestion started
 ```
 
@@ -79,8 +79,8 @@ Latest Ingestion Job
 Status: ✅ COMPLETE
 
 Statistics:
-  Documents Scanned: 17
-  Documents Modified: 17
+  Documents Scanned: 16
+  Documents Modified: 16
   Documents Failed: 0
 ═══════════════════════════════════════════
 ```
@@ -93,7 +93,7 @@ aws bedrock-agent list-ingestion-jobs \
   --query 'ingestionJobSummaries[0].[status,statistics]'
 ```
 
-Typical duration for 17 documents: **2-5 minutes**.
+Typical duration for 16 documents: **2-5 minutes**.
 
 ### What ingestion actually does
 
@@ -156,7 +156,9 @@ const response = await client.send(new RetrieveAndGenerateCommand({
 That single call embeds the question, searches the index, builds the prompt, generates the answer, and attaches citations.
 
 > **`modelArn` must be the inference profile ARN**, e.g.
-> `arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-opus-5`
+> `arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-haiku-5-5`
+
+> **Two templates are required with this model.** `scripts/test-rag.ts` passes `generationConfiguration.promptTemplate` and `orchestrationConfiguration.promptTemplate`, read from [config/](../config/). The Claude 5.5 models reject a `RetrieveAndGenerate` call that lacks either, with a `ValidationException` that names the missing piece; see [chapter 04](04-customization.md#answer-style-the-prompt-template).
 
 ### Response structure
 
@@ -250,7 +252,7 @@ A well-templated model says it doesn't have that information rather than inventi
 
 ### Faster responses
 
-- Use `us.anthropic.claude-haiku-4-5-20251001-v1:0` - markedly faster than Opus 5
+- Stay on the default `us.anthropic.claude-haiku-5-5` - markedly faster than Sonnet 5.5 or Opus 5.5
 - Lower `numberOfResults` from 5 to 3 - fewer tokens in the prompt
 - Keep chunks small
 
@@ -286,7 +288,7 @@ Model access isn't enabled for the account, **or** the IAM policy grants the inf
 
 ### Slow responses
 
-Opus 5 with `numberOfResults: 5` over long chunks is simply a lot of tokens. Try Haiku 4.5 first.
+Opus 5.5 with `numberOfResults: 5` over long chunks is simply a lot of tokens. Stay on Haiku 5.5 unless the answers show you need more.
 
 ## Monitoring
 

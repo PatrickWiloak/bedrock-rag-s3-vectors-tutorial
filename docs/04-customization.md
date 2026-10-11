@@ -19,7 +19,13 @@ The first three are cheap to iterate on. The last three mean rebuilding the vect
 
 ## Answer style: the prompt template
 
-This is the `RetrieveAndGenerate` equivalent of an agent's instructions, and the highest-leverage thing you can change. It lives in `PROMPT_TEMPLATE` in [lib/s3-rag-stack.ts](../lib/s3-rag-stack.ts).
+This is the `RetrieveAndGenerate` equivalent of an agent's instructions, and the highest-leverage thing you can change. It lives in [config/prompt-template.txt](../config/prompt-template.txt), which [lib/s3-rag-stack.ts](../lib/s3-rag-stack.ts) and [terraform/lambda.tf](../terraform/lambda.tf) both read, so the two deploy paths cannot drift apart.
+
+There is a second, smaller template next to it: [config/orchestration-prompt-template.txt](../config/orchestration-prompt-template.txt). Before retrieval, `RetrieveAndGenerate` asks the model to turn the conversation into a search query; that is the *orchestration* step, and this template drives it. It must contain `$conversation_history$` and `$output_format_instructions$`.
+
+Both templates end with `$output_format_instructions$`. In the generation template that placeholder is where Bedrock injects its own citation instructions; drop it and the model starts writing "according to Source 3" and the `citations` array thins out, because nothing told it how to mark attributions.
+
+> **Why there are two.** Older models fall back to Bedrock's built-in orchestration prompt if you only customise generation. The Claude 5.5 models (the default Haiku 5.5 included) refuse the call unless **both** templates are supplied and each contains `$query$`. The error names exactly what is missing - `Custom prompt templates must be provided for both Orchestration and Generation` - and it only appears at query time, never at deploy time.
 
 ### The one hard rule
 
@@ -93,7 +99,7 @@ No re-ingestion needed.
 ### Choosing at deploy time
 
 ```bash
-cdk deploy --context modelId=us.anthropic.claude-haiku-4-5-20251001-v1:0
+cdk deploy --context modelId=us.anthropic.claude-sonnet-5-5
 ```
 
 Or change `DEFAULT_MODEL_ID` in [lib/s3-rag-stack.ts](../lib/s3-rag-stack.ts).
@@ -102,9 +108,9 @@ Or change `DEFAULT_MODEL_ID` in [lib/s3-rag-stack.ts](../lib/s3-rag-stack.ts).
 
 | Model ID | Character |
 |---|---|
-| `us.anthropic.claude-opus-5` | Default. Best reasoning and synthesis across multiple documents. |
-| `us.anthropic.claude-sonnet-5` | Strong quality, meaningfully cheaper than Opus. |
-| `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Fastest and cheapest. Good for straightforward lookup questions. |
+| `us.anthropic.claude-haiku-5-5` | Default. Fastest and cheapest; more than enough for lookup questions over a small corpus. |
+| `us.anthropic.claude-sonnet-5-5` | Stronger reasoning and synthesis across multiple documents, at a few times the cost. |
+| `us.anthropic.claude-opus-5-5` | Best quality. Worth trying on the cross-document questions to see what the extra spend buys. |
 
 Check what your account can actually reach:
 
@@ -120,7 +126,7 @@ aws bedrock list-inference-profiles --region us-east-1 \
 - **Synthesis across documents** ("how does our PTO compare to our stated values?") - Opus or Sonnet earns its cost
 - **Working through the tutorial** - Haiku, then switch up if answers disappoint
 
-> **Remember the ID prefix.** `us.anthropic.claude-opus-5` is an inference profile; `anthropic.claude-opus-5` is the underlying foundation model. Configure the profile. The IAM policy needs both - [lib/web-hosting-construct.ts](../lib/web-hosting-construct.ts) derives the second from the first.
+> **Remember the ID prefix.** `us.anthropic.claude-haiku-5-5` is an inference profile; `anthropic.claude-haiku-5-5` is the underlying foundation model. Configure the profile. The IAM policy needs both - [lib/web-hosting-construct.ts](../lib/web-hosting-construct.ts) derives the second from the first.
 
 ## Chunking strategy
 
@@ -223,7 +229,7 @@ More is not automatically better - irrelevant chunks actively degrade answers by
 - `SEMANTIC` - pure vector similarity
 - `HYBRID` - vector plus keyword matching
 
-`HYBRID` helps when exact terms matter - product codes, error strings, proper nouns - because pure semantic search can miss a literal token match. Support depends on the vector store; check current S3 Vectors capability before relying on it.
+**S3 Vectors does not support hybrid search.** The [S3 Vectors integration limitations](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-bedrock-kb.html#s3-vectors-bedrock-kb-limitations) state it plainly: semantic search only. Setting `HYBRID` against this tutorial's knowledge base is rejected at query time. `HYBRID` is for knowledge bases on OpenSearch Serverless (and some other stores), where it helps when exact terms matter - product codes, error strings, proper nouns - because pure semantic search can miss a literal token match. If that is your corpus, see [Hybrid search](06-advanced.md#hybrid-search) for the trade-off.
 
 ## Metadata filtering
 
@@ -275,7 +281,7 @@ Operators include `equals`, `notEquals`, `greaterThan`, `greaterThanOrEquals`, `
 ### For speed
 
 ```typescript
-modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+modelId: 'us.anthropic.claude-sonnet-5-5',
 numberOfResults: 3,
 chunkSize: 300,
 ```
@@ -283,7 +289,7 @@ chunkSize: 300,
 ### For quality
 
 ```typescript
-modelId: 'us.anthropic.claude-opus-5',
+modelId: 'us.anthropic.claude-haiku-5-5',
 numberOfResults: 8,
 chunkSize: 500,
 chunkOverlapPercentage: 15,
@@ -294,7 +300,7 @@ Plus a prompt template that demands citations and forbids speculation.
 ### For cost
 
 ```typescript
-modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+modelId: 'us.anthropic.claude-sonnet-5-5',
 numberOfResults: 3,
 chunkSize: 300,
 chunkOverlapPercentage: 5,
@@ -308,11 +314,11 @@ Change one variable at a time and use a fixed question set, or you won't know wh
 
 ```bash
 # Baseline
-cdk deploy --context modelId=us.anthropic.claude-haiku-4-5-20251001-v1:0
+cdk deploy --context modelId=us.anthropic.claude-sonnet-5-5
 npm run test-rag > /tmp/haiku.txt
 
 # Variant
-cdk deploy --context modelId=us.anthropic.claude-opus-5
+cdk deploy --context modelId=us.anthropic.claude-haiku-5-5
 npm run test-rag > /tmp/opus.txt
 
 diff /tmp/haiku.txt /tmp/opus.txt

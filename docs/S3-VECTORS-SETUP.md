@@ -135,7 +135,7 @@ The knowledge base abstracts this: switching stores means changing `storageConfi
 
 Billing is per GB stored, per PUT request, and per query request - there is **no provisioned capacity charge**, which is the substantive difference from OpenSearch Serverless and the reason an idle stack in this tutorial costs almost nothing.
 
-For this tutorial's 17 documents the storage and request costs are cents. Model inference dominates the bill. Current pricing: [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/).
+For this tutorial's 16 documents the storage and request costs are cents. Model inference dominates the bill. Current pricing: [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/).
 
 ## Cleanup
 
