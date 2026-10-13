@@ -46,5 +46,10 @@
     "@aws-sdk/client-sts": "^3.1149.0",
     "aws-cdk-lib": "^2.267.0",
     "constructs": "^10.4.2"
+  },
+  "overrides": {
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "^7.1.6"
+    }
   }
 }
