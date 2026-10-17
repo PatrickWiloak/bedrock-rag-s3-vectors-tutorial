@@ -20,7 +20,7 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 
 - [ ] **Consider Server-Sent Events instead of raw NDJSON** if browser `EventSource` semantics (automatic reconnection) turn out to be worth the content-negotiation overhead.
 - [ ] **Automate ingestion.** `npm run upload-docs` is a manual step. An S3 event notification triggering `StartIngestionJob` would make the tutorial more production-shaped - and is a good chapter-06 exercise. Same change in both `lib/` and `terraform/`.
-- [ ] **Web UI unit test for the NDJSON parser and `sha256Hex`.** Both are small, pure, and were the two things that broke silently on first deploy.
+- [x] ✅ 2026-10-17 (extracted to `web/app/lib/stream.ts`, 6 tests in `web/test/`, `npm test --workspace=web`, added to CI; tsc, lint and `build:web` clean) **Web UI unit test for the NDJSON parser and `sha256Hex`.** Both are small, pure, and were the two things that broke silently on first deploy.
 
 ## Nice to have
 

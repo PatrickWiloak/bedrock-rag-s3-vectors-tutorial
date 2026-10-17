@@ -53,7 +53,7 @@ These caused real bugs. Verify before changing anything nearby.
 
 16. **The Claude 5.5 models require BOTH prompt templates, each containing `$query$`.** `RetrieveAndGenerate` on Haiku/Sonnet/Opus 5.5 fails with `Custom prompt templates must be provided for both Orchestration and Generation` unless `generationConfiguration.promptTemplate` AND `orchestrationConfiguration.promptTemplate` are set; the orchestration one must also contain `$conversation_history$` and `$output_format_instructions$`. The generation template ends with `$output_format_instructions$` too: that placeholder is where Bedrock injects its citation instructions, and without it the model falls back to "Source 1"-style references and attributions thin out. Haiku 4.5 accepts Bedrock's defaults. Both templates live in `config/` and are sent by the Lambda, `scripts/test-rag.ts` and `test-bedrock.sh`.
 
-17. **A POST through CloudFront OAC to a Lambda Function URL must carry `x-amz-content-sha256`.** CloudFront signs the origin request with SigV4 and Lambda rejects unsigned payloads, so the *browser* computes the SHA-256 of the JSON body and sends it as a header (`web/app/page.tsx`, `sha256Hex`). Without it the origin answers `The request signature we calculated does not match`. `test-bedrock.sh` sends it too.
+17. **A POST through CloudFront OAC to a Lambda Function URL must carry `x-amz-content-sha256`.** CloudFront signs the origin request with SigV4 and Lambda rejects unsigned payloads, so the *browser* computes the SHA-256 of the JSON body and sends it as a header (`web/app/lib/stream.ts`, `sha256Hex`, used by `web/app/page.tsx`). Without it the origin answers `The request signature we calculated does not match`. `test-bedrock.sh` sends it too.
 
 18. **The Lambda role needs `bedrock:GetInferenceProfile` on the profile ARN** in addition to the two `InvokeModel*` grants - `RetrieveAndGenerate` resolves the profile first. Missing it fails with `Not authorized to call GetInferenceProfile`.
 
@@ -80,6 +80,7 @@ IAC=terraform ./scripts/deploy.sh <any of the above>   # same, via terraform/
 
 npm run build:web               # Next.js static export → web/out (before any cdk deploy)
 npm run lint --workspace=web    # ESLint 10 flat config in web/eslint.config.mjs; CI runs it
+npm test --workspace=web        # node --test for the NDJSON parser + sha256Hex (web/test/); CI runs it
 npm run check-status            # ingestion job progress
 npm run test-rag                # query from the CLI (add `interactive`)
 ./test-bedrock.sh               # bottom-up diagnostic incl. a streaming check - run this first when broken

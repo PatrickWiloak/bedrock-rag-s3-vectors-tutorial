@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import type { Citation, Message, StreamEvent } from './lib/types';
+import type { Citation, Message } from './lib/types';
+import { createNdjsonParser, sha256Hex } from './lib/stream';
 import MisconfiguredBanner from './components/MisconfiguredBanner';
 import QuickStarters from './components/QuickStarters';
 import Citations from './components/Citations';
@@ -13,12 +14,6 @@ import Citations from './components/Citations';
  * at runtime, no CORS, and no cross-origin preflight.
  */
 const CHAT_ENDPOINT = '/api/chat';
-
-/** Lower-case hex SHA-256 of a string, via the browser's Web Crypto API. */
-async function sha256Hex(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 const AssistantAvatar = () => (
   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200">
@@ -120,34 +115,18 @@ export default function Home() {
         }
 
         /**
-         * Parse NDJSON as it arrives.
-         *
-         * Chunk boundaries fall wherever the network puts them, not on line
-         * breaks, so the trailing partial line is held in `buffer` until the
-         * rest of it turns up.
+         * Parse NDJSON as it arrives (see createNdjsonParser: chunk boundaries
+         * fall wherever the network puts them, not on line breaks).
          */
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';
+        const parser = createNdjsonParser();
 
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            if (!line.trim()) continue;
-
-            let event: StreamEvent;
-            try {
-              event = JSON.parse(line) as StreamEvent;
-            } catch {
-              continue; // Ignore anything that isn't a complete JSON object.
-            }
-
+          for (const event of parser.push(decoder.decode(value, { stream: true }))) {
             switch (event.type) {
               case 'session':
                 setSessionId(event.sessionId);
