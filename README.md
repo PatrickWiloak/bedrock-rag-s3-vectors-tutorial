@@ -507,8 +507,10 @@ Free, open-source projects from the [Nobler Works](https://noblerworks.com/) tea
 | 🛰️ **[IRONSIGHT](https://github.com/NoblerWorks-HQ/IRONSIGHT)** | Real-time OSINT command center - 50+ live intel feeds, no API keys | **[Website →](https://noblerworks-hq.github.io/IRONSIGHT/)** |
 | 🌍 **[War Games](https://github.com/NoblerWorks-HQ/WarGames)** | NATO, Russia, and China on one map, each commanded by an LLM | **[Website →](https://noblerworks-hq.github.io/WarGames/)** |
 | ⛏️ **[Minecraft Agentic Builder](https://github.com/NoblerWorks-HQ/minecraft-agentic)** | A crew of AI agents builds Minecraft worlds live in your browser | [Repo →](https://github.com/NoblerWorks-HQ/minecraft-agentic) |
-| 📚 **[Everything AI, Summarized](https://github.com/PatrickWiloak/genai-research-papers-summarized)** | 156 landmark AI papers and 31 explainers in plain language | **[Website →](https://patrickwiloak.github.io/genai-research-papers-summarized/)** |
-| ☁️ **[Cloud, Data, AI & Security: Zero to Hero](https://github.com/PatrickWiloak/cloud-data-ai-security-zero-to-hero)** | 149 cert study guides across 27 providers, plus hands-on builds | **[Website →](https://patrickwiloak.github.io/cloud-data-ai-security-zero-to-hero/)** |
+| 📚 **[AI Zero to Hero](https://github.com/PatrickWiloak/ai-zero-to-hero)** | Everything AI in one place: learn, use at work, build, govern, get hired - plus 156 landmark papers in plain language | **[Website →](https://ai.noblerworks.com/)** |
+| ☁️ **[Cloud Zero to Hero](https://github.com/PatrickWiloak/cloud-zero-to-hero)** | AWS, Azure, GCP, Kubernetes, DevOps and FinOps: 72 cert guides, concepts and labs | **[Website →](https://cloud.noblerworks.com/)** |
+| 🗄️ **[Data Zero to Hero](https://github.com/PatrickWiloak/data-zero-to-hero)** | Data engineering, databases, Snowflake, Databricks, Kafka: cert guides and paths | **[Website →](https://data.noblerworks.com/)** |
+| 🔐 **[Security Zero to Hero](https://github.com/PatrickWiloak/security-zero-to-hero)** | CISSP, Security+, cloud security, compliance and zero trust | **[Website →](https://security.noblerworks.com/)** |
 | 🏃 **[Proper Training for Distance Running](https://github.com/PatrickWiloak/proper-distance-running-training-guidance)** | Evidence-based running guide with twelve 5K-to-marathon plans | **[Read online →](https://achilles.fit/guides)** |
 
 <div align="center" markdown="1">
