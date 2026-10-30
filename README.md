@@ -355,6 +355,8 @@ Plus `.docx` files for the dress code policy, the vacation policy, and three fur
 
 Also see [docs/S3-VECTORS-SETUP.md](docs/S3-VECTORS-SETUP.md) for S3 Vectors specifics and limits.
 
+See [docs/FEATURES.md](docs/FEATURES.md) for the feature catalogue: what the stack does and what each command and chapter covers.
+
 ## Project Structure
 
 ```
