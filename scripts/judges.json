@@ -1,0 +1,14 @@
+{
+  "judges": [
+    {
+      "id": "newer-haiku-2026-11-11",
+      "title": "Bedrock: no Haiku inference profile newer than claude-haiku-5-5 (FAIL names it - update DEFAULT_MODEL_ID, terraform model_id and the docs tables)",
+      "due": "2026-11-11",
+      "todo": "re-check the default model. `us.anthropic.claude-haiku-5-5`",
+      "check": {
+        "kind": "cmd",
+        "run": "aws bedrock list-inference-profiles --region us-east-1 --query 'inferenceProfileSummaries[].inferenceProfileId' --output json | node -e \"\nconst ids=JSON.parse(require('fs').readFileSync(0,'utf8'));\nconst v=(id)=>{const m=id.match(/claude-haiku-(\\d+)-(\\d+)(?:-|$)/);return m&&!/^\\d{8}/.test(m[2])?+m[1]+ +m[2]/10:null};\nconst haiku=ids.filter(i=>/haiku/.test(i));if(!haiku.length){console.log('no Haiku profiles listed');process.exit(2)}\nconst newer=haiku.filter(i=>v(i)>5.5);\nconsole.log(newer.length?'newer Haiku: '+newer.join(', '):'newest Haiku is 5.5 ('+haiku.length+' Haiku profiles)');\nprocess.exit(newer.length?1:0)\""
+      }
+    }
+  ]
+}
