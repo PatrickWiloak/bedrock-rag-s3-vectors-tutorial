@@ -34,7 +34,7 @@ All AWS credentials live in the Lambda's IAM role. Nothing sensitive reaches the
 
 ## Prerequisites
 
-- Node.js 20+ (22 recommended; see [`.nvmrc`](../.nvmrc))
+- Node.js 22+ (24 recommended; see [`.nvmrc`](../.nvmrc))
 - The stack deployed with either CDK or Terraform (see the [root README](../README.md))
 
 ## Quick start

@@ -7,7 +7,8 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 ## Dated checks
 
 - [ ] 2026-12-01 - retry TypeScript 7. Held on 2026-10-11 because `typescript-eslint` refuses TS 7.0 (support tracked for >= 7.1 at https://github.com/typescript-eslint/typescript-eslint/issues/10940) and `ts-node` 10 does not run on it. When `eslint-config-next` pulls a typescript-eslint that supports it: `npm i -D typescript@7` in root and `web/`, swap `ts-node` for `tsx` in `cdk.json` and the `npm run` scripts, set `"module": "nodenext"` and `"types": ["node"]` in `tsconfig.json` (node10 resolution is removed in TS 7), then run tsc, lint, `build:web` and `cdk synth`. All four were verified to pass with that recipe on 2026-10-11 except lint.
-- [ ] Keep `@types/node` on 22.x on purpose - the Lambda runtime, `.nvmrc` and CI all run Node 22, and the types should match the runtime. Bump it together with the runtime, not with `npm outdated`.
+- [ ] Keep `@types/node` on 24.x on purpose - the Lambda runtime (`nodejs24.x` since 2026-10-31), `.nvmrc` and CI all run Node 24, and the types should match the runtime. Bump it together with the runtime (Node 26 ~spring 2027), not with `npm outdated`.
+- [ ] 2026-12-01 - Node 24 (2026-10-31) is code-only so far: that day's deploy-then-destroy run is the first `nodejs24.x` deploy; run `./scripts/deploy.sh full` (CDK) too, not only Terraform, then destroy.
 - [x] 2026-10-13 Dependabot alert #1 (Next.js < 16.3.6) auto-closed as fixed.
 - [x] 2026-10-13 alert #3 postcss-selector-parser < 7.1.6: `@tailwindcss/typography` 0.5.20 (latest) pins 6.0.10 exactly, so a scoped `overrides` entry forces ^7.1.6 (7.0's only break is safe insert-during-iteration). The built `web/out` CSS is byte-identical before and after. Drop the override once typography depends on 7.x.
 - [x] 2026-10-15 confirm Dependabot alert #3 (postcss-selector-parser) closed ✅ 2026-10-28 gone: API returns 410 withdrawn; nothing to dismiss.

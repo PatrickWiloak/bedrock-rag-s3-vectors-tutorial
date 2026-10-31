@@ -158,7 +158,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the request flow in detail.
 You need:
 
 - ✅ An AWS account with **Bedrock model access enabled** (see below)
-- ✅ **Node.js 20+**
+- ✅ **Node.js 22+** (24 recommended; the Lambda runs `nodejs24.x`)
 - ✅ AWS CLI configured with credentials
 - ✅ **One of:** AWS CDK (`npm install -g aws-cdk`) **plus Docker running** (CDK bundles the Lambda in a container), **or** Terraform 1.10+ (no Docker needed) - see [Deploying with Terraform](#deploying-with-terraform)
 - ✅ `jq` - used by `test-bedrock.sh` and `scripts/deploy.sh`
@@ -368,7 +368,7 @@ bedrock-rag-s3-vectors-tutorial/
 ├── TODO.md                         # Open work on this repo
 ├── test-bedrock.sh                 # Bottom-up deployment diagnostic (incl. a streaming check)
 ├── iam-policy.json                 # Permissions needed to deploy
-├── .nvmrc                          # Node version (22)
+├── .nvmrc                          # Node version (24)
 ├── .github/workflows/ci.yml        # tsc, next build, cdk synth, terraform fmt + validate
 ├── config/
 │   ├── prompt-template.txt         # Answer style - read by BOTH deploy paths

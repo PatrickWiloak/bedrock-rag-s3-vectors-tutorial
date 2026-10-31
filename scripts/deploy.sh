@@ -111,7 +111,7 @@ check_prereqs() {
 
   local major
   major="$(node --version | sed 's/^v//' | cut -d. -f1)"
-  [ "$major" -ge 20 ] || die "Node $major found; this project needs Node 20 or newer."
+  [ "$major" -ge 22 ] || die "Node $major found; this project needs Node 22 or newer (24 recommended)."
 
   # CDK bundles the Lambda inside a container, so Docker has to be up. The
   # Terraform path zips lambda/ directly and needs no Docker.

@@ -85,7 +85,7 @@ resource "aws_lambda_function" "chat" {
   filename         = data.archive_file.chat.output_path
   source_code_hash = data.archive_file.chat.output_base64sha256
 
-  runtime = "nodejs22.x"
+  runtime = "nodejs24.x"
   handler = "chat.handler"
 
   # Generation can run for a while on a large model; the Function URL streams

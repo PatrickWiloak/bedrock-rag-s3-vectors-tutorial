@@ -252,7 +252,7 @@ Worth doing once - `cdk synth` shows exactly what CDK generates from those 350 l
 ./scripts/deploy.sh infra     # or: npx cdk deploy
 ```
 
-Expect 5-8 minutes. Docker must be running; CDK bundles the Lambda in a `public.ecr.aws/sam/build-nodejs22.x` container.
+Expect 5-8 minutes. Docker must be running; CDK bundles the Lambda in a `public.ecr.aws/sam/build-nodejs24.x` container.
 
 ### Step 7: Save the outputs
 

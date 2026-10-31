@@ -107,11 +107,11 @@ export class WebHostingConstruct extends Construct {
     // ========================================
 
     this.chatFunction = new lambda.Function(this, 'ChatFunction', {
-      runtime: lambda.Runtime.NODEJS_22_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'chat.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambda'), {
         bundling: {
-          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
+          image: lambda.Runtime.NODEJS_24_X.bundlingImage,
           command: [
             'bash',
             '-c',
