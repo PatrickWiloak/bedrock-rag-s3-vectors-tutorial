@@ -13,6 +13,8 @@ import type { NextConfig } from 'next';
  * - Image optimization needs a server, so it is disabled.
  */
 const nextConfig: NextConfig = {
+  // Next 16.4+ stops `next build` when an AI agent runs it on a version with a known advisory; opted out 2026-11-17 (npm audit + Dependabot already report advisories).
+  experimental: { agentUpgrade: false },
   output: 'export',
   images: { unoptimized: true },
   trailingSlash: true,
