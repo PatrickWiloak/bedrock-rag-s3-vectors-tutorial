@@ -235,7 +235,7 @@ That's the trade same-origin makes: local development of the chat loop needs a d
 
 | What | Where |
 |---|---|
-| Theme colours | `web/tailwind.config.ts`, `web/app/globals.css` |
+| Theme colours | `web/app/globals.css` (Tailwind 4 `@theme`; there is no `tailwind.config.ts`) |
 | Quick-start questions | `web/app/components/QuickStarters.tsx` |
 | Citation display | `web/app/components/Citations.tsx` |
 | Document titles | `TITLES` in `lambda/chat.mjs` (server-side) |

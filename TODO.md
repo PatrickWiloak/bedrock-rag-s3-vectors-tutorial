@@ -32,6 +32,10 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 
 ---
 
+## Docs audit 2026-11-24
+
+- [ ] 2026-11-24 Pat: the 12-01 re-verify (Dated checks) hits the 11-22 `deny-bedrock-invoke` on user/admin: `test-bedrock.sh` step "End-to-end query" and `npm run test-rag` call RetrieveAndGenerate as you. Skip it (Bedrock-for-SaaS rule) or test only via CloudFront/Lambda?
+
 ## Done - v2.2 (2026-10-11)
 
 - [x] ~~Deploy end to end in a real account~~ ✅ 2026-10-11 - both paths deployed to the Nobler Works account, verified with `test-bedrock.sh` (16 docs indexed, grounded answer, streaming measured at ~4.7s spread), then destroyed. Found and fixed: `x-amz-content-sha256` required on POSTs through CloudFront OAC; `bedrock:GetInferenceProfile` missing from the Lambda role; Claude 5.5 models need both prompt templates with `$query$`; CDK outputs inside constructs get mangled keys; the synth-time timestamp in CDK resource names replaced the knowledge base on every redeploy; `Region is missing` with profile-only credentials; `numberOfNewDocumentsIndexed` vs `Modified` in the diagnostic; `test-bedrock.sh` reported success after a failed check.

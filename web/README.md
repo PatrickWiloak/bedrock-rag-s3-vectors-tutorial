@@ -138,7 +138,7 @@ The Lambda does the resolution - filename to friendly title, category folder, tr
 
 | What | Where |
 |---|---|
-| Theme colours | `tailwind.config.ts`, `app/globals.css` |
+| Theme colours | `app/globals.css` (Tailwind 4 `@theme`; there is no `tailwind.config.ts`) |
 | Quick-start questions | `app/components/QuickStarters.tsx` |
 | Citation display | `app/components/Citations.tsx` |
 | Document titles | `TITLES` in [`lambda/chat.mjs`](../lambda/chat.mjs) - it's server-side |

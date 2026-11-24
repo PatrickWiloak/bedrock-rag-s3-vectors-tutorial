@@ -31,7 +31,7 @@ These caused real bugs. Verify before changing anything nearby.
 
 5. **`RetrieveAndGenerate` issues session IDs.** The first request must omit `sessionId`; a client-generated one is rejected. The UI's `sessionId` state starts empty and is only ever set from a response.
 
-6. **The root `.gitignore` must not contain a bare `*.js`.** It previously did, which silently excluded `web/next.config.js` and `web/postcss.config.js` and made the web UI unbuildable from a fresh clone. The rules are now scoped to `/bin`, `/lib`, `/lambda`, `/scripts`.
+6. **The root `.gitignore` must not contain a bare `*.js`.** It previously did, which silently excluded the web UI's JS config files (now `web/next.config.ts` and `web/postcss.config.mjs`) and made the web UI unbuildable from a fresh clone. The rules are now scoped to `/bin`, `/lib`, `/lambda`, `/scripts`.
 
 7. **`npm run build:web` must run before `cdk deploy`.** The stack uploads `web/out`; synthesis fails if it doesn't exist. `./scripts/deploy.sh` does it for you.
 
