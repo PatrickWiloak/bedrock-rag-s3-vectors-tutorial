@@ -126,4 +126,4 @@ Documentation *is* the deliverable here - a wrong doc is a worse bug than a wron
 
 ## Current state
 
-See [TODO.md](TODO.md). v2.2 (2026-10-11) was deployed end to end from both paths and torn down again; the dated checks in TODO.md say when to re-verify.
+See [TODO.md](TODO.md). v2.2 (2026-10-11) was deployed end to end from both paths and torn down again. **Last verified 2026-10-11.** No scheduled re-verify: our own work never calls Bedrock (2026-11-22 rule), so re-verify only on a reader-reported break, with Patrick's OK.

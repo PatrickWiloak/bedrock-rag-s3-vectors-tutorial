@@ -8,7 +8,7 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 
 - [ ] 2027-01-01 - retry TypeScript 7. Held on 2026-10-11 because `typescript-eslint` refuses TS 7.0 (support tracked for >= 7.1 at https://github.com/typescript-eslint/typescript-eslint/issues/10940) and `ts-node` 10 does not run on it. When `eslint-config-next` pulls a typescript-eslint that supports it: `npm i -D typescript@7` in root and `web/`, swap `ts-node` for `tsx` in `cdk.json` and the `npm run` scripts, set `"module": "nodenext"` and `"types": ["node"]` in `tsconfig.json` (node10 resolution is removed in TS 7), then run tsc, lint, `build:web` and `cdk synth`. All four were verified to pass with that recipe on 2026-10-11 except lint. ✏️ 2026-11-06: rechecked early: typescript-eslint 8.72.1 still needs TS <6.1.0.
 - [ ] Keep `@types/node` on 24.x on purpose - the Lambda runtime (`nodejs24.x` since 2026-10-31), `.nvmrc` and CI all run Node 24, and the types should match the runtime. Bump it together with the runtime (Node 26 ~spring 2027), not with `npm outdated`.
-- [ ] 2026-12-01 - Node 24 (2026-10-31) is code-only so far: that day's deploy-then-destroy run is the first `nodejs24.x` deploy; run `./scripts/deploy.sh full` (CDK) too, not only Terraform, then destroy.
+- [ ] Node 24 (2026-10-31) is code-only: `nodejs24.x` was never deployed. The dated deploy-then-destroy run was retired 2026-11-24 (Bedrock is for SaaS users only); deploy only if a reader reports breakage and Patrick OKs it.
 - [x] 2026-10-13 Dependabot alert #1 (Next.js < 16.3.6) auto-closed as fixed.
 - [x] 2026-10-13 alert #3 postcss-selector-parser < 7.1.6: `@tailwindcss/typography` 0.5.20 (latest) pins 6.0.10 exactly, so a scoped `overrides` entry forces ^7.1.6 (7.0's only break is safe insert-during-iteration). The built `web/out` CSS is byte-identical before and after. Drop the override once typography depends on 7.x.
 - [x] 2026-10-15 confirm Dependabot alert #3 (postcss-selector-parser) closed ✅ 2026-10-28 gone: API returns 410 withdrawn; nothing to dismiss.
@@ -16,7 +16,7 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 - [ ] 2027-01-01 re-check `braces` with the TS 7 retry ✏️ 2026-10-28: no patch yet, alert #2 auto-dismissed. Dev-only via eslint-config-next -> fast-glob 3 -> micromatch; not in the Lambda or `web/out`. ✏️ 2026-11-06: rechecked early: braces still 3.0.3, no patch.
 - [x] ✅ 2026-11-11 judged by run-judges (loop judge-tick): newest Haiku is 5.5 (5 Haiku profiles). Was: 2026-12-11 - re-check the default model. `us.anthropic.claude-haiku-5-5` was ACTIVE on 2026-10-11. Run `aws bedrock list-inference-profiles --region us-east-1`; if a newer Haiku exists, update `DEFAULT_MODEL_ID` in `lib/s3-rag-stack.ts`, `model_id` in `terraform/variables.tf` + `terraform.tfvars.example`, and the model tables in README / QUICKSTART / docs/04. ✏️ 2026-11-06: rechecked early: us.anthropic.claude-haiku-5-5 ACTIVE and still the newest Haiku.
 - [ ] 2027-03-01 - check whether `@aws-cdk/aws-bedrock-alpha` has shipped a knowledge base L2 (`npm view @aws-cdk/aws-bedrock-alpha` + its README). It had only Agents and Guardrails on 2026-10-11, which is why `lib/` stays on L1s. If it has, judge a port; `@cdklabs/generative-ai-cdk-constructs` is deprecated and is not the answer. ✏️ 2026-11-06: checked early: alpha 2.275 HAS a Knowledge Base L2, but its README covers OpenSearch Serverless and never mentions S3 Vectors, so no port yet.
-- [ ] 2026-12-01 - re-run `IAC=terraform ./scripts/deploy.sh full` and `./test-bedrock.sh` once (then destroy) to catch provider or service drift; last green 2026-10-11.
+- [x] ~~2026-12-01 re-run deploy + `./test-bedrock.sh`~~ retired 2026-11-24: our own work never calls Bedrock (rule 2026-11-22). Last verified 2026-10-11; re-verify only on a reader-reported break, with Patrick's OK.
 
 ## Worth doing
 
@@ -34,7 +34,7 @@ Working task list for the Bedrock RAG + S3 Vectors tutorial - read this at the s
 
 ## Docs audit 2026-11-24
 
-- [ ] 2026-11-24 Pat: the 12-01 re-verify (Dated checks) hits the 11-22 `deny-bedrock-invoke` on user/admin: `test-bedrock.sh` step "End-to-end query" and `npm run test-rag` call RetrieveAndGenerate as you. Skip it (Bedrock-for-SaaS rule) or test only via CloudFront/Lambda?
+- [x] 2026-11-24 (done 2026-11-24: skip it, both dated checks retired) Pat: the 12-01 re-verify (Dated checks) hits the 11-22 `deny-bedrock-invoke` on user/admin: `test-bedrock.sh` step "End-to-end query" and `npm run test-rag` call RetrieveAndGenerate as you. Skip it (Bedrock-for-SaaS rule) or test only via CloudFront/Lambda?
 
 ## Done - v2.2 (2026-10-11)
 
